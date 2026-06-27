@@ -564,7 +564,7 @@ function App(){
     const pedStatus=(parseFloat(age)<19&&parseFloat(age)>=2)?pedGrowthStatus(BMI,age,gender):null;
     const pedContext=pedStatus?("\n\nPAEDIATRIC GROWTH ASSESSMENT ("+pedStatus.std+"): BMI-for-age z-score = "+pedStatus.z+" → "+pedStatus.label+" (median BMI for age = "+pedStatus.M+"). Tailor energy for growth: if Thinness/Wasted use catch-up growth surplus (WHO: kcal = RDA-for-age x [ideal weight-for-height / actual weight], typically 120-150% of normal); if Overweight/Obese use gentle deficit preserving growth (never aggressive in children). Use age-appropriate protein 1.0-2.0 g/kg. Reference WHO/CDC growth standards."):"";
     const bariatricRules=(dietType==="bariatric"||caseType==="post_bariatric")?"\n\nBARIATRIC-SPECIFIC RULES (ASMBS/ASPEN): Protein is the PRIORITY nutrient — 60–80g/day minimum, eat protein FIRST at every meal. NO sugar-sweetened drinks. Avoid simple sugars and high-fat meals (dumping syndrome risk). Small frequent meals only. No drinking fluids with meals — separate fluids from solids by 30 minutes. Chew thoroughly. Texture appropriate to surgical phase. Mandatory supplements: chewable/liquid multivitamin, Calcium CITRATE 1200–1500mg/day (divided, not >600mg/dose), Vitamin D3 3000IU/day, Vitamin B12 350–1000mcg/day, Iron 45–60mg/day, Thiamine. Keep meal calories small and protein-dense.":"";
-    const prompt="You are a clinical dietitian. Generate a 7-day nutrition plan following ASPEN and ESPEN guidelines.\n\nPATIENT: "+name+" | DOB: "+dob+" | Age: "+age+" | Gender: "+gender+"\nWeight: "+wt+"kg | Height: "+ht+"cm | BMI: "+BMI+" | Activity: "+activity+"\n\nLABS:\n"+(labLines||"None")+"\n\nCOMORBIDITIES: "+(morbs.join(", ")||"None")+"\nMEDICATIONS: "+(meds||"None")+"\nALLERGIES: "+(allergies||"None")+"\n\nCASE: "+(caseObj?caseObj.en:caseType)+"\nDIET: "+(dietObj?dietObj.en:dietType)+" — "+(dietObj?dietObj.macros:"")+"\nMEALS/DAY: "+freqObj.en+" ("+mealSlots+")\nCALORIES: "+finalCals+" kcal/day\n\nNOTES: "+(notes||"None")+"\n\nReturn ONLY valid JSON, no markdown:\n{\n  \"summary\":{\"calories\":\""+finalCals+" kcal/day\",\"protein\":\"Xg\",\"carbs\":\"Xg\",\"fat\":\"Xg\",\"fiber\":\"Xg\",\"fluid\":\"XL\",\"rationale\":\"2 sentences citing ASPEN/ESPEN\"},\n  \"flags\":[\"clinical warning\"],\n  \"supplements\":[{\"name\":\"x\",\"dose\":\"x\",\"reason\":\"x\"}],\n  \"keyPrinciples\":[\"p1\",\"p2\",\"p3\",\"p4\",\"p5\"],\n  \"days\":[\n    {\"day\":\"Monday\",\"meals\":{"+freqObj.meals.map(function(m){return "\""+m+"\":{\"name\":\"English name\",\"name_ar\":\"الاسم بالعربي\",\"items\":[\"English item with grams\"],\"items_ar\":[\"العنصر بالعربية مع الكمية\"],\"calories\":000,\"notes\":\"tip\"}";}).join(",")+" },\"total\":0}\n  ],\n  \"lifestyle\":[\"advice\"],\n  \"followUp\":\"recommendation\"\n}\nUse the Egyptian Food Composition Tables (National Nutrition Institute, Cairo) and USDA FoodData Central for accurate calorie and macronutrient values per portion. State portion in grams/household measures. All 7 days REQUIRED. Egyptian/Middle Eastern food. Keep item descriptions concise (e.g. \"Ful medames 150g\", \"Whole wheat bread 2 slices\"). Limit each meal to 2-3 items. IMPORTANT: Provide BOTH English (name, items) AND Arabic (name_ar, items_ar) for EVERY meal. The Arabic must be a proper Egyptian-Arabic translation of food names and portions — for example English name Ful Medames with Egg becomes Arabic فول مدمس بالبيض, and English item Ful medames 200g becomes Arabic فول مدمس ٢٠٠ جرام. Never leave name_ar or items_ar empty. Valid complete JSON only. No markdown.";
+    const prompt="You are a clinical dietitian. Generate a 7-day nutrition plan following ASPEN and ESPEN guidelines.\n\nPATIENT: "+name+" | DOB: "+dob+" | Age: "+age+" | Gender: "+gender+"\nWeight: "+wt+"kg | Height: "+ht+"cm | BMI: "+BMI+" | Activity: "+activity+"\n\nLABS:\n"+(labLines||"None")+"\n\nCOMORBIDITIES: "+(morbs.join(", ")||"None")+"\nMEDICATIONS: "+(meds||"None")+"\nALLERGIES: "+(allergies||"None")+"\n\nCASE: "+(caseObj?caseObj.en:caseType)+"\nDIET: "+(dietObj?dietObj.en:dietType)+" — "+(dietObj?dietObj.macros:"")+"\nMEALS/DAY: "+freqObj.en+" ("+mealSlots+")\nCALORIES: "+finalCals+" kcal/day\n\nNOTES: "+(notes||"None")+"\n\nReturn ONLY valid JSON, no markdown:\n{\n  \"summary\":{\"calories\":\""+finalCals+" kcal/day\",\"protein\":\"Xg\",\"carbs\":\"Xg\",\"fat\":\"Xg\",\"fiber\":\"Xg\",\"fluid\":\"XL\",\"rationale\":\"2 sentences citing ASPEN/ESPEN\",\"rationale_ar\":\"جملتان بالعربي\"},\n  \"flags\":[\"clinical warning\"],\"flags_ar\":[\"تحذير سريري\"],\n  \"supplements\":[{\"name\":\"x\",\"dose\":\"x\",\"reason\":\"x\"}],\n  \"keyPrinciples\":[\"p1\",\"p2\",\"p3\",\"p4\",\"p5\"],\"keyPrinciples_ar\":[\"المبدأ ١\",\"المبدأ ٢\",\"المبدأ ٣\",\"المبدأ ٤\",\"المبدأ ٥\"],\n  \"days\":[\n    {\"day\":\"Monday\",\"meals\":{"+freqObj.meals.map(function(m){return "\""+m+"\":{\"name\":\"English name\",\"name_ar\":\"الاسم بالعربي\",\"items\":[\"English item with grams\"],\"items_ar\":[\"العنصر بالعربية مع الكمية\"],\"calories\":000,\"notes\":\"tip\"}";}).join(",")+" },\"total\":0}\n  ],\n  \"lifestyle\":[\"advice\"],\"lifestyle_ar\":[\"نصيحة\"],\n  \"followUp\":\"recommendation\",\"followUp_ar\":\"التوصية بالعربي\"\n}\nUse the Egyptian Food Composition Tables (National Nutrition Institute, Cairo) and USDA FoodData Central for accurate calorie and macronutrient values per portion. State portion in grams/household measures. All 7 days REQUIRED. Egyptian/Middle Eastern food. Keep item descriptions concise (e.g. \"Ful medames 150g\", \"Whole wheat bread 2 slices\"). Limit each meal to 2-3 items. IMPORTANT: Provide BOTH English (name, items) AND Arabic (name_ar, items_ar) for EVERY meal. The Arabic must be a proper Egyptian-Arabic translation of food names and portions — for example English name Ful Medames with Egg becomes Arabic فول مدمس بالبيض, and English item Ful medames 200g becomes Arabic فول مدمس ٢٠٠ جرام. Never leave name_ar or items_ar empty. Valid complete JSON only. No markdown.";
 
     try{
       const res=await fetch("https://api.anthropic.com/v1/messages",{
@@ -725,11 +725,11 @@ function App(){
       React.createElement("div",{style:{display:"flex",gap:10,marginTop:8,fontSize:8}},
         React.createElement("div",{style:{flex:1}},
           React.createElement("div",{style:{fontWeight:700,color:C.teal,fontSize:9,marginBottom:2}},par?"المبادئ الأساسية":"Key Principles"),
-          (plan.keyPrinciples||[]).slice(0,4).map(function(p,i){return React.createElement("div",{key:i,style:{color:C.slate}},"• "+String(p));})
+          ((par&&plan.keyPrinciples_ar&&plan.keyPrinciples_ar.length)?plan.keyPrinciples_ar:(plan.keyPrinciples||[])).slice(0,4).map(function(p,i){return React.createElement("div",{key:i,style:{color:C.slate}},"• "+String(p));})
         ),
         plan.supplements&&plan.supplements.length>0&&React.createElement("div",{style:{flex:1}},
           React.createElement("div",{style:{fontWeight:700,color:C.teal,fontSize:9,marginBottom:2}},par?"المكملات":"Supplements"),
-          plan.supplements.slice(0,4).map(function(s,i){return React.createElement("div",{key:i,style:{color:C.slate}},"• "+String(s.name||"")+" — "+String(s.dose||""));})
+          plan.supplements.slice(0,4).map(function(s,i){return React.createElement("div",{key:i,style:{color:C.slate}},"• "+String((par&&s.name_ar)?s.name_ar:s.name||"")+" — "+String(s.dose||""));})
         )
       ),
       React.createElement("div",{style:{borderTop:"1px solid "+C.border,marginTop:8,paddingTop:5,fontSize:7.5,color:"#9BB0AD",textAlign:"center"}},
@@ -1024,13 +1024,13 @@ function App(){
       ),
       React.createElement("div",{style:{fontSize:12,color:C.slate,background:C.mist,borderRadius:8,padding:"9px 12px",borderLeft:"3px solid "+C.teal}},
         React.createElement("b",{style:{color:C.teal}},ar?"المبرر السريري: ":"Rationale: "),
-        String(plan.summary&&plan.summary.rationale||"")
+        String((ar&&plan.summary&&plan.summary.rationale_ar)?plan.summary.rationale_ar:(plan.summary&&plan.summary.rationale)||"")
       )
     ),
     // Flags
     plan.flags&&plan.flags.length>0&&React.createElement("div",{style:{background:C.amberLt,border:"1.5px solid "+C.amber+"40",borderRadius:12,padding:"12px 16px",marginBottom:14}},
       React.createElement("div",{style:{fontSize:12,fontWeight:700,color:"#C87E00",marginBottom:6}},"⚠️ "+(ar?"تنبيهات سريرية":"Clinical Flags")),
-      plan.flags.map(function(f,i){return React.createElement("div",{key:i,style:{fontSize:12.5,color:C.slate,marginBottom:3}},"• "+String(f));})
+      ((ar&&plan.flags_ar&&plan.flags_ar.length)?plan.flags_ar:plan.flags).map(function(f,i){return React.createElement("div",{key:i,style:{fontSize:12.5,color:C.slate,marginBottom:3}},"• "+String(f));})
     ),
     // Day tabs
     React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}},
@@ -1073,7 +1073,7 @@ function App(){
     React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:16,marginBottom:14}},
       React.createElement("div",{style:{background:C.white,border:"1.5px solid "+C.border,borderRadius:12,padding:16}},
         React.createElement("div",{style:{fontSize:12,fontWeight:700,color:C.teal,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}},"🔑 "+(ar?"المبادئ الغذائية":"Key Principles")),
-        (plan.keyPrinciples||[]).map(function(p,i){
+        ((ar&&plan.keyPrinciples_ar&&plan.keyPrinciples_ar.length)?plan.keyPrinciples_ar:(plan.keyPrinciples||[])).map(function(p,i){
           return React.createElement("div",{key:i,style:{display:"flex",gap:8,marginBottom:7}},
             React.createElement("div",{style:{width:20,height:20,borderRadius:"50%",background:C.teal,color:C.white,fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},String(i+1)),
             React.createElement("div",{style:{fontSize:12,color:C.slate,paddingTop:2}},String(p))
@@ -1084,8 +1084,8 @@ function App(){
         React.createElement("div",{style:{fontSize:12,fontWeight:700,color:C.teal,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}},"💊 "+(ar?"المكملات":"Supplements")),
         (plan.supplements||[]).map(function(s,i){
           return React.createElement("div",{key:i,style:{background:C.sageLt,borderRadius:9,padding:"8px 11px",marginBottom:7}},
-            React.createElement("div",{style:{fontWeight:700,fontSize:12,color:C.teal}},String(s.name||"")),
-            React.createElement("div",{style:{fontSize:11,color:C.slate}},String(s.dose||"")+" — "+String(s.reason||""))
+            React.createElement("div",{style:{fontWeight:700,fontSize:12,color:C.teal}},String((ar&&s.name_ar)?s.name_ar:s.name||"")),
+            React.createElement("div",{style:{fontSize:11,color:C.slate}},String(s.dose||"")+" — "+String((ar&&s.reason_ar)?s.reason_ar:s.reason||""))
           );
         })
       )
