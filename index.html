@@ -1,21 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>NutriPlan — Dr. Reda Okasha</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥗</text></svg>"/>
-  <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f4f9f8;}
-    input,select,textarea,button{font-family:inherit;}
-    @media print{.no-print{display:none!important;}body{margin:0;background:white;}}
-    ::-webkit-scrollbar{width:5px;} ::-webkit-scrollbar-thumb{background:#2A8F8F;border-radius:3px;}
-  </style>
-</head>
-<body>
-  <div id="root"><div style="padding:30px;font-family:sans-serif;color:#1B6B6B">⏳ Loading…</div></div>
-  <script>/**
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NutriPlan — Dr. Reda Okasha</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥗</text></svg>"/>
+<style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f4f9f8;}input,select,textarea,button{font-family:inherit;}@media print{.no-print{display:none!important;}body{margin:0;background:white;}}::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-thumb{background:#2A8F8F;border-radius:3px;}</style>
+</head><body><div id="root"><div style="padding:30px;font-family:sans-serif;color:#1B6B6B">⏳ Loading…</div></div>
+<script>/**
  * @license React
  * react.production.min.js
  *
@@ -46,8 +35,7 @@ render:a}};c.isValidElement=M;c.lazy=function(a){return{$$typeof:Aa,_payload:{_s
 c.useEffect=function(a,b){return g.current.useEffect(a,b)};c.useId=function(){return g.current.useId()};c.useImperativeHandle=function(a,b,c){return g.current.useImperativeHandle(a,b,c)};c.useInsertionEffect=function(a,b){return g.current.useInsertionEffect(a,b)};c.useLayoutEffect=function(a,b){return g.current.useLayoutEffect(a,b)};c.useMemo=function(a,b){return g.current.useMemo(a,b)};c.useReducer=function(a,b,c){return g.current.useReducer(a,b,c)};c.useRef=function(a){return g.current.useRef(a)};
 c.useState=function(a){return g.current.useState(a)};c.useSyncExternalStore=function(a,b,c){return g.current.useSyncExternalStore(a,b,c)};c.useTransition=function(){return g.current.useTransition()};c.version="18.3.1"});
 })();
-</script>
-  <script>/**
+</script><script>/**
  * @license React
  * react-dom.production.min.js
  *
@@ -315,7 +303,7 @@ var d=null!=c&&c.hydratedSources||null,e=!1,f="",g=aj;null!==c&&void 0!==c&&(!0=
 function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmountComponentAtNode=function(a){if(!Vd(a))throw Error(m(40));return a._reactRootContainer?(yb(function(){Wd(null,null,a,!1,function(){a._reactRootContainer=null;a[Ja]=null})}),!0):!1};Q.unstable_batchedUpdates=Tf;Q.unstable_renderSubtreeIntoContainer=function(a,b,c,d){if(!Vd(c))throw Error(m(200));if(null==a||void 0===a._reactInternals)throw Error(m(38));return Wd(a,b,c,!1,d)};Q.version="18.3.1-next-f1338f8080-20240426"});
 })();
 </script>
-  <script>
+<script>
 const { useState } = React;
 
 const C = {
@@ -576,13 +564,13 @@ function App(){
     const pedStatus=(parseFloat(age)<19&&parseFloat(age)>=2)?pedGrowthStatus(BMI,age,gender):null;
     const pedContext=pedStatus?("\n\nPAEDIATRIC GROWTH ASSESSMENT ("+pedStatus.std+"): BMI-for-age z-score = "+pedStatus.z+" → "+pedStatus.label+" (median BMI for age = "+pedStatus.M+"). Tailor energy for growth: if Thinness/Wasted use catch-up growth surplus (WHO: kcal = RDA-for-age x [ideal weight-for-height / actual weight], typically 120-150% of normal); if Overweight/Obese use gentle deficit preserving growth (never aggressive in children). Use age-appropriate protein 1.0-2.0 g/kg. Reference WHO/CDC growth standards."):"";
     const bariatricRules=(dietType==="bariatric"||caseType==="post_bariatric")?"\n\nBARIATRIC-SPECIFIC RULES (ASMBS/ASPEN): Protein is the PRIORITY nutrient — 60–80g/day minimum, eat protein FIRST at every meal. NO sugar-sweetened drinks. Avoid simple sugars and high-fat meals (dumping syndrome risk). Small frequent meals only. No drinking fluids with meals — separate fluids from solids by 30 minutes. Chew thoroughly. Texture appropriate to surgical phase. Mandatory supplements: chewable/liquid multivitamin, Calcium CITRATE 1200–1500mg/day (divided, not >600mg/dose), Vitamin D3 3000IU/day, Vitamin B12 350–1000mcg/day, Iron 45–60mg/day, Thiamine. Keep meal calories small and protein-dense.":"";
-    const prompt="You are a clinical dietitian. Generate a 7-day nutrition plan following ASPEN and ESPEN guidelines.\n\nPATIENT: "+name+" | DOB: "+dob+" | Age: "+age+" | Gender: "+gender+"\nWeight: "+wt+"kg | Height: "+ht+"cm | BMI: "+BMI+" | Activity: "+activity+"\n\nLABS:\n"+(labLines||"None")+"\n\nCOMORBIDITIES: "+(morbs.join(", ")||"None")+"\nMEDICATIONS: "+(meds||"None")+"\nALLERGIES: "+(allergies||"None")+"\n\nCASE: "+(caseObj?caseObj.en:caseType)+"\nDIET: "+(dietObj?dietObj.en:dietType)+" — "+(dietObj?dietObj.macros:"")+"\nMEALS/DAY: "+freqObj.en+" ("+mealSlots+")\nCALORIES: "+finalCals+" kcal/day\n\nNOTES: "+(notes||"None")+"\n\nReturn ONLY valid JSON, no markdown:\n{\n  \"summary\":{\"calories\":\""+finalCals+" kcal/day\",\"protein\":\"Xg\",\"carbs\":\"Xg\",\"fat\":\"Xg\",\"fiber\":\"Xg\",\"fluid\":\"XL\",\"rationale\":\"2 sentences citing ASPEN/ESPEN\"},\n  \"flags\":[\"clinical warning\"],\n  \"supplements\":[{\"name\":\"x\",\"dose\":\"x\",\"reason\":\"x\"}],\n  \"keyPrinciples\":[\"p1\",\"p2\",\"p3\",\"p4\",\"p5\"],\n  \"days\":[\n    {\"day\":\"Monday\",\"meals\":{"+freqObj.meals.map(function(m){return "\""+m+"\":{\"name\":\"...\",\"items\":[\"item with portion\"],\"calories\":000,\"notes\":\"tip\"}";}).join(",")+" },\"total\":0}\n  ],\n  \"lifestyle\":[\"advice\"],\n  \"followUp\":\"recommendation\"\n}\nUse the Egyptian Food Composition Tables (National Nutrition Institute, Cairo) and USDA FoodData Central for accurate calorie and macronutrient values per portion. State portion in grams/household measures. All 7 days REQUIRED. Egyptian/Middle Eastern food. Keep item descriptions concise (e.g. \"Ful medames 150g\", \"Whole wheat bread 2 slices\"). Limit each meal to 2-3 items. Valid complete JSON only. No markdown.";
+    const prompt="You are a clinical dietitian. Generate a 7-day nutrition plan following ASPEN and ESPEN guidelines.\n\nPATIENT: "+name+" | DOB: "+dob+" | Age: "+age+" | Gender: "+gender+"\nWeight: "+wt+"kg | Height: "+ht+"cm | BMI: "+BMI+" | Activity: "+activity+"\n\nLABS:\n"+(labLines||"None")+"\n\nCOMORBIDITIES: "+(morbs.join(", ")||"None")+"\nMEDICATIONS: "+(meds||"None")+"\nALLERGIES: "+(allergies||"None")+"\n\nCASE: "+(caseObj?caseObj.en:caseType)+"\nDIET: "+(dietObj?dietObj.en:dietType)+" — "+(dietObj?dietObj.macros:"")+"\nMEALS/DAY: "+freqObj.en+" ("+mealSlots+")\nCALORIES: "+finalCals+" kcal/day\n\nNOTES: "+(notes||"None")+"\n\nReturn ONLY valid JSON, no markdown:\n{\n  \"summary\":{\"calories\":\""+finalCals+" kcal/day\",\"protein\":\"Xg\",\"carbs\":\"Xg\",\"fat\":\"Xg\",\"fiber\":\"Xg\",\"fluid\":\"XL\",\"rationale\":\"2 sentences citing ASPEN/ESPEN\"},\n  \"flags\":[\"clinical warning\"],\n  \"supplements\":[{\"name\":\"x\",\"dose\":\"x\",\"reason\":\"x\"}],\n  \"keyPrinciples\":[\"p1\",\"p2\",\"p3\",\"p4\",\"p5\"],\n  \"days\":[\n    {\"day\":\"Monday\",\"meals\":{"+freqObj.meals.map(function(m){return "\""+m+"\":{\"name\":\"English name\",\"name_ar\":\"الاسم بالعربي\",\"items\":[\"English item with grams\"],\"items_ar\":[\"العنصر بالعربية مع الكمية\"],\"calories\":000,\"notes\":\"tip\"}";}).join(",")+" },\"total\":0}\n  ],\n  \"lifestyle\":[\"advice\"],\n  \"followUp\":\"recommendation\"\n}\nUse the Egyptian Food Composition Tables (National Nutrition Institute, Cairo) and USDA FoodData Central for accurate calorie and macronutrient values per portion. State portion in grams/household measures. All 7 days REQUIRED. Egyptian/Middle Eastern food. Keep item descriptions concise (e.g. \"Ful medames 150g\", \"Whole wheat bread 2 slices\"). Limit each meal to 2-3 items. IMPORTANT: Provide BOTH English (name, items) AND Arabic (name_ar, items_ar) for EVERY meal. The Arabic must be a proper Egyptian-Arabic translation of food names and portions — for example English name Ful Medames with Egg becomes Arabic فول مدمس بالبيض, and English item Ful medames 200g becomes Arabic فول مدمس ٢٠٠ جرام. Never leave name_ar or items_ar empty. Valid complete JSON only. No markdown.";
 
     try{
       const res=await fetch("https://api.anthropic.com/v1/messages",{
         method:"POST",
         headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:8000,messages:[{role:"user",content:prompt}]})
+        body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:12000,messages:[{role:"user",content:prompt}]})
       });
       if(!res.ok){
         let errBody="";
@@ -723,8 +711,8 @@ function App(){
                 var meal=(d.meals||{})[mk];
                 return React.createElement("td",{key:mk,style:{padding:"4px 5px",border:"1px solid "+C.border,verticalAlign:"top",textAlign:par?"right":"left"}},
                   meal?React.createElement("div",null,
-                    React.createElement("div",{style:{fontWeight:700,color:C.ink,fontSize:8.5}},String(meal.name||"")),
-                    React.createElement("div",{style:{color:C.slate,fontSize:8}},(meal.items||[]).join(par?" · ":" · ")),
+                    React.createElement("div",{style:{fontWeight:700,color:C.ink,fontSize:8.5}},String((par&&meal.name_ar)?meal.name_ar:meal.name||"")),
+                    React.createElement("div",{style:{color:C.slate,fontSize:8}},((par&&meal.items_ar&&meal.items_ar.length)?meal.items_ar:meal.items||[]).join(" · ")),
                     React.createElement("div",{style:{color:C.tealMid,fontSize:7.5}},String(meal.calories||0)+" kcal")
                   ):React.createElement("span",{style:{color:"#ccc"}},"—")
                 );
@@ -1071,9 +1059,9 @@ function App(){
                 React.createElement("span",null,String(MEAL_ICONS[mk]||"🍽️")+" "+String(mk)),
                 React.createElement("span",{style:{background:C.white,padding:"1px 8px",borderRadius:10,fontSize:10,color:C.slate}},String(meal.calories||0)+" kcal")
               ),
-              React.createElement("div",{style:{fontSize:12,fontWeight:700,color:C.ink,marginBottom:5}},String(meal.name||"")),
+              React.createElement("div",{style:{fontSize:12,fontWeight:700,color:C.ink,marginBottom:5}},String((ar&&meal.name_ar)?meal.name_ar:meal.name||"")),
               React.createElement("ul",{style:{margin:0,paddingLeft:14}},
-                (meal.items||[]).map(function(item,ii){return React.createElement("li",{key:ii,style:{fontSize:12,color:C.slate,marginBottom:2}},String(item));})
+                ((ar&&meal.items_ar&&meal.items_ar.length)?meal.items_ar:(meal.items||[])).map(function(item,ii){return React.createElement("li",{key:ii,style:{fontSize:12,color:C.slate,marginBottom:2}},String(item));})
               ),
               meal.notes&&React.createElement("div",{style:{fontSize:11,color:C.tealMid,marginTop:4,fontStyle:"italic"}},"💡 "+String(meal.notes))
             );
@@ -1145,10 +1133,6 @@ function App(){
   );
 }
 
-  </script>
-  <script>
-  try { ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App)); }
-  catch(e){ document.getElementById('root').innerHTML='<div style="padding:30px;color:red;font-family:monospace;white-space:pre-wrap"><h2>Error</h2>'+e.message+'\n'+e.stack+'</div>'; }
-  </script>
-</body>
-</html>
+</script>
+<script>try{ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));}catch(e){document.getElementById('root').innerHTML='<div style="padding:30px;color:red;font-family:monospace;white-space:pre-wrap"><h2>Error</h2>'+e.message+'\n'+e.stack+'</div>';}</script>
+</body></html>
