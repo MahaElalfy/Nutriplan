@@ -581,7 +581,7 @@ function App(){
       return Q+m+Q+":{"+f.join(",")+"}";
     };
     const langNote=(planLang==="ar")?"\n\nIMPORTANT: Generate ALL text content (meal names, items, principles, supplements, flags, rationale) in ARABIC ONLY (Egyptian Arabic). Use the _ar fields. Do NOT generate English.":(planLang==="both")?"\n\nProvide BOTH English and Arabic for every meal (name+name_ar, items+items_ar).":"\n\nGenerate all content in English.";
-    const prompt="You are a clinical dietitian. Generate a 7-day nutrition plan following ASPEN and ESPEN guidelines.\n\nPATIENT: "+name+" | DOB: "+dob+" | Age: "+age+" | Gender: "+gender+"\nWeight: "+wt+"kg | Height: "+ht+"cm | BMI: "+BMI+" | Activity: "+activity+"\n\nLABS:\n"+(labLines||"None")+"\n\nCOMORBIDITIES: "+(morbs.join(", ")||"None")+"\nMEDICATIONS: "+(meds||"None")+"\nALLERGIES: "+(allergies||"None")+"\n\nCASE: "+(caseObj?caseObj.en:caseType)+"\nDIET: "+(dietObj?dietObj.en:dietType)+" — "+(dietObj?dietObj.macros:"")+"\nMEALS/DAY: "+freqObj.en+" ("+mealSlots+")\nCALORIES: "+finalCals+" kcal/day\n\nNOTES: "+(notes||"None")+caseRules+bariatricRules+pedContext+"\n\n"+EXCHANGE_REF+"\n\nReturn ONLY valid JSON, no markdown:\n{\n  \"summary\":{\"calories\":\""+finalCals+" kcal/day\",\"protein\":\"Xg\",\"carbs\":\"Xg\",\"fat\":\"Xg\",\"fiber\":\"Xg\",\"fluid\":\"XL\",\"rationale\":\"2 sentences citing ASPEN/ESPEN\",\"rationale_ar\":\"جملتان بالعربي\"},\n  \"flags\":[\"clinical warning\"],\"flags_ar\":[\"تحذير سريري\"],\n  \"supplements\":[{\"name\":\"x\",\"name_ar\":\"الاسم بالعربي\",\"dose\":\"x\",\"reason\":\"x\",\"reason_ar\":\"السبب بالعربي\"}],\n  \"keyPrinciples\":[\"p1\",\"p2\",\"p3\",\"p4\",\"p5\"],\"keyPrinciples_ar\":[\"المبدأ ١\",\"المبدأ ٢\",\"المبدأ ٣\",\"المبدأ ٤\",\"المبدأ ٥\"],\n  \"days\":[\n    {\"day\":\"Monday\",\"meals\":{"+freqObj.meals.map(mealTpl).join(",")+" },\"total\":0}\n  ],\n  \"lifestyle\":[\"advice\"],\"lifestyle_ar\":[\"نصيحة\"],\n  \"followUp\":\"recommendation\",\"followUp_ar\":\"التوصية بالعربي\"\n}\nUse the Egyptian Food Composition Tables (National Nutrition Institute, Cairo) and USDA FoodData Central for accurate calorie and macronutrient values per portion. State portion in grams/household measures. All 7 days REQUIRED. Egyptian/Middle Eastern food. Keep item descriptions concise (e.g. \"Ful medames 150g\", \"Whole wheat bread 2 slices\"). Limit each meal to EXACTLY 2 items max. Keep notes very short (under 8 words) or omit. Valid complete JSON only. No markdown."+langNote;
+    const prompt="You are a clinical dietitian. Generate a 7-day nutrition plan following ASPEN and ESPEN guidelines.\n\nPATIENT: "+name+" | DOB: "+dob+" | Age: "+age+" | Gender: "+gender+"\nWeight: "+wt+"kg | Height: "+ht+"cm | BMI: "+BMI+" | Activity: "+activity+"\n\nLABS:\n"+(labLines||"None")+"\n\nCOMORBIDITIES: "+(morbs.join(", ")||"None")+"\nMEDICATIONS: "+(meds||"None")+"\nALLERGIES: "+(allergies||"None")+"\n\nCASE: "+(caseObj?caseObj.en:caseType)+"\nDIET: "+(dietObj?dietObj.en:dietType)+" — "+(dietObj?dietObj.macros:"")+"\nMEALS/DAY: "+freqObj.en+" ("+mealSlots+")\nCALORIES: "+finalCals+" kcal/day\n\nNOTES: "+(notes||"None")+caseRules+bariatricRules+pedContext+"\n\n"+EXCHANGE_REF+"\n\nReturn ONLY valid JSON, no markdown:\n{\n  \"summary\":{\"calories\":\""+finalCals+" kcal/day\",\"protein\":\"Xg\",\"carbs\":\"Xg\",\"fat\":\"Xg\",\"fiber\":\"Xg\",\"fluid\":\"XL\",\"rationale\":\"2 sentences citing ASPEN/ESPEN\",\"rationale_ar\":\"جملتان بالعربي\"},\n  \"flags\":[\"clinical warning\"],\"flags_ar\":[\"تحذير سريري\"],\n  \"keyPrinciples\":[\"p1\",\"p2\",\"p3\",\"p4\",\"p5\"],\"keyPrinciples_ar\":[\"المبدأ ١\",\"المبدأ ٢\",\"المبدأ ٣\",\"المبدأ ٤\",\"المبدأ ٥\"],\n  \"days\":[\n    {\"day\":\"Monday\",\"meals\":{"+freqObj.meals.map(mealTpl).join(",")+" },\"total\":0}\n  ],\n  \"lifestyle\":[\"advice\"],\"lifestyle_ar\":[\"نصيحة\"],\n  \"followUp\":\"recommendation\",\"followUp_ar\":\"التوصية بالعربي\"\n}\nUse the Egyptian Food Composition Tables (National Nutrition Institute, Cairo) and USDA FoodData Central for accurate calorie and macronutrient values per portion. State ALL portions in HOUSEHOLD MEASURES that patients understand: cups, tablespoons, teaspoons, pieces, slices, palm-size, medium or large fruit — NOT grams. For example say 1 cup cooked rice instead of 120g rice, 2 tablespoons olive oil instead of 30g, 1 medium apple instead of 150g apple, 1 palm-size grilled chicken instead of 120g. Use the Exchange List serving sizes as the household portions. All 7 days REQUIRED. Egyptian/Middle Eastern food. Keep item descriptions concise with household measures (e.g. \"Ful medames 1 cup\", \"Whole wheat bread 2 slices\", \"Grilled chicken 1 palm-size\"). Limit each meal to EXACTLY 2 items max. Keep notes very short (under 8 words) or omit. Valid complete JSON only. No markdown."+langNote;
 
     try{
       const res=await fetch("https://api.anthropic.com/v1/messages",{
@@ -779,15 +779,12 @@ function App(){
         )
       ),
       // Footer notes
-      React.createElement("div",{style:{display:"flex",gap:10,marginTop:8,fontSize:8}},
-        React.createElement("div",{style:{flex:1}},
+      React.createElement("div",{style:{marginTop:8,fontSize:8}},
+        React.createElement("div",{style:{width:"100%"}},
           React.createElement("div",{style:{fontWeight:700,color:C.teal,fontSize:9,marginBottom:2}},par?"المبادئ الأساسية":"Key Principles"),
           ((par&&plan.keyPrinciples_ar&&plan.keyPrinciples_ar.length)?plan.keyPrinciples_ar:(plan.keyPrinciples||[])).slice(0,4).map(function(p,i){return React.createElement("div",{key:i,style:{color:C.slate}},"• "+String(p));})
         ),
-        plan.supplements&&plan.supplements.length>0&&React.createElement("div",{style:{flex:1}},
-          React.createElement("div",{style:{fontWeight:700,color:C.teal,fontSize:9,marginBottom:2}},par?"المكملات":"Supplements"),
-          plan.supplements.slice(0,4).map(function(s,i){return React.createElement("div",{key:i,style:{color:C.slate}},"• "+String((par&&s.name_ar)?s.name_ar:s.name||"")+" — "+String(s.dose||""));})
-        )
+        null
       ),
       React.createElement("div",{style:{borderTop:"1px solid "+C.border,marginTop:8,paddingTop:5,fontSize:7.5,color:"#9BB0AD",textAlign:"center"}},
         (par?"د. رضا عكاشه · استشاري تغذية علاجية للأطفال والمراهقين والكبار":"Dr. Reda Okasha · Consultant Clinical Nutritionist")+" · ASPEN/ESPEN · "+String(plan._date||"")
@@ -1137,23 +1134,14 @@ function App(){
         )
       );
     }),
-    // Principles + Supplements
-    React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:16,marginBottom:14}},
+    // Key Principles (full width — supplements removed, prescribed separately)
+    React.createElement("div",{style:{marginTop:16,marginBottom:14}},
       React.createElement("div",{style:{background:C.white,border:"1.5px solid "+C.border,borderRadius:12,padding:16}},
         React.createElement("div",{style:{fontSize:12,fontWeight:700,color:C.teal,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}},"🔑 "+(ar?"المبادئ الغذائية":"Key Principles")),
         ((ar&&plan.keyPrinciples_ar&&plan.keyPrinciples_ar.length)?plan.keyPrinciples_ar:(plan.keyPrinciples||[])).map(function(p,i){
           return React.createElement("div",{key:i,style:{display:"flex",gap:8,marginBottom:7}},
             React.createElement("div",{style:{width:20,height:20,borderRadius:"50%",background:C.teal,color:C.white,fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},String(i+1)),
             React.createElement("div",{style:{fontSize:12,color:C.slate,paddingTop:2}},String(p))
-          );
-        })
-      ),
-      React.createElement("div",{style:{background:C.white,border:"1.5px solid "+C.border,borderRadius:12,padding:16}},
-        React.createElement("div",{style:{fontSize:12,fontWeight:700,color:C.teal,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}},"💊 "+(ar?"المكملات":"Supplements")),
-        (plan.supplements||[]).map(function(s,i){
-          return React.createElement("div",{key:i,style:{background:C.sageLt,borderRadius:9,padding:"8px 11px",marginBottom:7}},
-            React.createElement("div",{style:{fontWeight:700,fontSize:12,color:C.teal}},String((ar&&s.name_ar)?s.name_ar:s.name||"")),
-            React.createElement("div",{style:{fontSize:11,color:C.slate}},String(s.dose||"")+" — "+String((ar&&s.reason_ar)?s.reason_ar:s.reason||""))
           );
         })
       )
