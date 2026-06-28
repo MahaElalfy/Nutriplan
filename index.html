@@ -629,32 +629,49 @@ function App(){
       setSaveMsg("");
       if(!text){throw new Error("Empty response. Check API key and billing credit at console.anthropic.com");}
       let cleaned=text.replace(/```json|```/g,"").trim();
-      let parsed;
-      try{
-        parsed=JSON.parse(cleaned);
-      }catch(parseErr){
-        // Response was truncated - try to repair by closing open structures
-        let repaired=cleaned;
-        // Remove any trailing incomplete content after last complete day
-        const lastBrace=repaired.lastIndexOf("}");
-        // Count unclosed brackets and try to close them
-        const openCurly=(repaired.match(/{/g)||[]).length;
-        const closeCurly=(repaired.match(/}/g)||[]).length;
-        const openSquare=(repaired.match(/\[/g)||[]).length;
-        const closeSquare=(repaired.match(/]/g)||[]).length;
-        // Trim to last complete object then close everything
-        if(lastBrace>0){repaired=repaired.slice(0,lastBrace+1);}
-        for(let i=0;i<(openSquare-closeSquare);i++)repaired+="]";
-        for(let i=0;i<(openCurly-closeCurly);i++)repaired+="}";
+      let parsed=null;
+      // Attempt 1: parse as-is
+      try{ parsed=JSON.parse(cleaned); }catch(e1){ parsed=null; }
+      // Attempt 2: bracket-balance repair
+      if(!parsed){
         try{
-          parsed=JSON.parse(repaired);
-        }catch(e2){
-          throw new Error("The plan response was too long and got cut off. Please try again, or reduce to '3 Meals + 1 Snack' for a shorter plan.");
-        }
+          let r=cleaned;
+          const lb=r.lastIndexOf("}");
+          if(lb>0) r=r.slice(0,lb+1);
+          const oc=(r.match(/{/g)||[]).length, cc=(r.match(/}/g)||[]).length;
+          const os=(r.match(/\[/g)||[]).length, cs=(r.match(/]/g)||[]).length;
+          for(let i=0;i<(os-cs);i++)r+="]";
+          for(let i=0;i<(oc-cc);i++)r+="}";
+          parsed=JSON.parse(r);
+        }catch(e2){ parsed=null; }
+      }
+      // Attempt 3: salvage complete days only — rebuild minimal valid JSON
+      if(!parsed){
+        try{
+          // grab everything up to the days array
+          const daysIdx=cleaned.indexOf('"days"');
+          // extract each complete day object {"day":...total":N}
+          const dayRe=/\{\s*"day"[\s\S]*?"total"\s*:\s*\d+\s*\}/g;
+          const dayMatches=cleaned.match(dayRe)||[];
+          // extract summary if present
+          let summaryObj={};
+          const sumMatch=cleaned.match(/"summary"\s*:\s*(\{[\s\S]*?\})\s*,\s*"(?:flags|days|supplements|keyPrinciples)"/);
+          if(sumMatch){ try{ summaryObj=JSON.parse(sumMatch[1]); }catch(e){} }
+          if(dayMatches.length>0){
+            const daysJson=dayMatches.join(",");
+            const rebuilt='{"summary":'+(sumMatch?sumMatch[1]:'{}')+',"flags":[],"supplements":[],"keyPrinciples":[],"days":['+daysJson+']}';
+            parsed=JSON.parse(rebuilt);
+            parsed._partial=dayMatches.length;
+          }
+        }catch(e3){ parsed=null; }
+      }
+      if(!parsed){
+        throw new Error("The plan response was cut off and could not be recovered. Please pick a single language (English OR Arabic, not Both) and try again.");
       }
       parsed._date=new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
       parsed._planLang=planLang;
       parsed._patient={name,dob,bmi:BMI,gender,caseLabel:caseObj?caseObj[lang]||caseObj.en:"",dietLabel:dietObj?dietObj[lang]||dietObj.en:""};
+      if(parsed._partial){setSaveMsg((ar?"⚠️ تم استرداد ":"⚠️ Recovered ")+parsed._partial+(ar?" أيام فقط — جرب لغة واحدة لخطة كاملة":" days only — pick one language for a full 7-day plan"));}
       setPlan(parsed);setStep(4);
       // Auto-save to Supabase
       try{
