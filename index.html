@@ -433,6 +433,9 @@ const FREQ = [
    meals:["Breakfast","Morning Snack","Lunch","Afternoon Snack","Dinner","Evening Snack"]},
 ];
 
+const MEAL_AR={Breakfast:"الإفطار","Morning Snack":"وجبة الصباح",Lunch:"الغداء","Afternoon Snack":"وجبة العصر",Dinner:"العشاء","Evening Snack":"وجبة المساء",Snack:"وجبة خفيفة"};
+const DAY_AR={Monday:"الإثنين",Tuesday:"الثلاثاء",Wednesday:"الأربعاء",Thursday:"الخميس",Friday:"الجمعة",Saturday:"السبت",Sunday:"الأحد"};
+
 const LABS = [
   {k:"hba1c",   en:"HbA1c (%)",             ref:"<5.7%"},
   {k:"fbs",     en:"Fasting Glucose (mg/dL)",ref:"70–100"},
@@ -595,7 +598,7 @@ function App(){
       f.push(Q+"calories"+Q+":000");
       return Q+m+Q+":{"+f.join(",")+"}";
     };
-    const langNote=(planLang==="ar")?"\n\nIMPORTANT: Generate ALL text content (meal names, items, principles, supplements, flags, rationale) in ARABIC ONLY (Egyptian Arabic). Use the _ar fields. Do NOT generate English.":(planLang==="both")?"\n\nProvide BOTH English and Arabic for every meal (name+name_ar, items+items_ar).":"\n\nGenerate all content in English.";
+    const langNote=(planLang==="ar")?"\n\n🔴 CRITICAL LANGUAGE RULE: This plan is for ARABIC-SPEAKING patients. EVERY single text value — meal names (name_ar), food items (items_ar), principles (keyPrinciples_ar), flags (flags_ar), rationale (rationale_ar) — MUST be written in EGYPTIAN ARABIC. Food names like 'Ful Medames', 'Grilled Chicken', 'Lentil Soup' MUST be Arabic: 'فول مدمس', 'فراخ مشوية', 'شوربة عدس'. Portions stay readable: 'فول مدمس ٢٠٠ جرام (كوب واحد)'. Do NOT output any English words in the _ar fields. Fill ONLY the _ar fields, leave English fields empty or minimal.":(planLang==="both")?"\n\n🔴 CRITICAL: For EVERY meal you MUST fill BOTH the English fields (name, items) AND the Arabic fields (name_ar, items_ar). The name_ar and items_ar must be proper Egyptian Arabic translations — e.g. name:'Ful Medames' name_ar:'فول مدمس', items:['Ful medames 200g (1 cup)'] items_ar:['فول مدمس ٢٠٠ جرام (كوب واحد)']. NEVER leave name_ar or items_ar empty or in English. Also translate flags_ar, keyPrinciples_ar, rationale_ar to Arabic.":"\n\nGenerate all content in English.";
     const prompt="You are a clinical dietitian. Generate a 7-day nutrition plan following ASPEN and ESPEN guidelines.\n\nPATIENT: "+name+" | DOB: "+dob+" | Age: "+age+" | Gender: "+gender+"\nWeight: "+wt+"kg | Height: "+ht+"cm | BMI: "+BMI+" | Activity: "+activity+"\n\nLABS:\n"+(labLines||"None")+"\n\nCOMORBIDITIES: "+(morbs.join(", ")||"None")+"\nMEDICATIONS: "+(meds||"None")+"\nALLERGIES: "+(allergies||"None")+"\n\nCASE: "+(caseObj?caseObj.en:caseType)+"\nDIET: "+(dietObj?dietObj.en:dietType)+" — "+(dietObj?dietObj.macros:"")+"\nMEALS/DAY: "+freqObj.en+" ("+mealSlots+")\nCALORIES: "+finalCals+" kcal/day\n\nNOTES: "+(notes||"None")+caseRules+bariatricRules+dietRules+pedContext+"\n\n"+EXCHANGE_REF+"\n\nReturn ONLY valid JSON, no markdown:\n{\n  \"summary\":{\"calories\":\""+finalCals+" kcal/day\",\"protein\":\"Xg\",\"carbs\":\"Xg\",\"fat\":\"Xg\",\"fiber\":\"Xg\",\"fluid\":\"XL\",\"rationale\":\"2 sentences citing ASPEN/ESPEN\",\"rationale_ar\":\"جملتان بالعربي\"},\n  \"flags\":[\"clinical warning\"],\"flags_ar\":[\"تحذير سريري\"],\n  \"keyPrinciples\":[\"p1\",\"p2\",\"p3\",\"p4\",\"p5\"],\"keyPrinciples_ar\":[\"المبدأ ١\",\"المبدأ ٢\",\"المبدأ ٣\",\"المبدأ ٤\",\"المبدأ ٥\"],\n  \"days\":[\n    {\"day\":\"Monday\",\"meals\":{"+freqObj.meals.map(mealTpl).join(",")+" },\"total\":0}\n  ],\n  \"lifestyle\":[\"advice\"],\"lifestyle_ar\":[\"نصيحة\"],\n  \"followUp\":\"recommendation\",\"followUp_ar\":\"التوصية بالعربي\"\n}\nUse the Egyptian Food Composition Tables (National Nutrition Institute, Cairo) and USDA FoodData Central for accurate calorie and macronutrient values per portion. State EVERY portion in GRAMS followed by its household equivalent in brackets (spoons, cups, hand/palm size, or finger size) so patients can measure easily. Format: amount in grams then the household measure in parentheses. For example: 120g rice (about 1 cup), 30g olive oil (2 tablespoons), 150g apple (1 medium), 120g grilled chicken (palm-size piece), 90g cheese (2 fingers), 15g nuts (1 tablespoon). ALWAYS give BOTH the grams AND the household equivalent for every item. All 7 days REQUIRED. Egyptian/Middle Eastern food. Each item = grams + household measure in brackets (e.g. \"Ful medames 200g (1 cup)\", \"Whole wheat bread 60g (2 slices)\", \"Grilled chicken 120g (palm-size)\"). Limit each meal to EXACTLY 2 items max. Keep notes very short (under 8 words) or omit. Valid complete JSON only. No markdown."+langNote;
 
     try{
@@ -1159,7 +1162,7 @@ function App(){
           style:{padding:"6px 14px",borderRadius:20,fontSize:12,fontWeight:600,
             border:"1.5px solid "+(activeDay===i?C.teal:C.border),
             background:activeDay===i?C.teal:C.white,color:activeDay===i?C.white:C.slate,cursor:"pointer",fontFamily:"inherit"}},
-          String(d.day||"Day "+(i+1))
+          String(((ar||plan._planLang==="ar")&&DAY_AR[d.day])?DAY_AR[d.day]:(d.day||"Day "+(i+1)))
         );
       })
     ),
@@ -1168,7 +1171,7 @@ function App(){
       if(di!==activeDay) return null;
       return React.createElement("div",{key:di},
         React.createElement("div",{style:{fontSize:14,fontWeight:800,color:C.teal,marginBottom:10,display:"flex",alignItems:"center",gap:10}},
-          React.createElement("span",{style:{background:C.teal,color:C.white,borderRadius:20,padding:"2px 14px",fontSize:12}},String(day.day||"")),
+          React.createElement("span",{style:{background:C.teal,color:C.white,borderRadius:20,padding:"2px 14px",fontSize:12}},String(((ar||plan._planLang==="ar")&&DAY_AR[day.day])?DAY_AR[day.day]:(day.day||""))),
           React.createElement("span",{style:{fontSize:12,color:C.slate}},ar?"إجمالي: ":"Total: ","~"+String(day.total||0)+" kcal")
         ),
         React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}},
@@ -1181,7 +1184,7 @@ function App(){
             var itemsVal=(useAr&&meal.items_ar&&meal.items_ar.length)?meal.items_ar:(meal.items&&meal.items.length?meal.items:meal.items_ar||[]);
             return React.createElement("div",{key:mk,style:{background:MEAL_COLORS[mk]||C.mist,border:"1px solid "+C.border,borderRadius:12,padding:"11px 13px"}},
               React.createElement("div",{style:{fontSize:11,fontWeight:700,color:C.teal,marginBottom:5,display:"flex",justifyContent:"space-between",alignItems:"center"}},
-                React.createElement("span",null,String(MEAL_ICONS[mk]||"🍽️")+" "+String(mk)),
+                React.createElement("span",null,String(MEAL_ICONS[mk]||"🍽️")+" "+String(((ar||plan._planLang==="ar")&&MEAL_AR[mk])?MEAL_AR[mk]:mk)),
                 editMode?React.createElement("input",{type:"number",value:meal.calories||0,onChange:function(e){updateMeal(di,mk,"calories",parseInt(e.target.value)||0);},style:{width:60,padding:"2px 5px",borderRadius:6,border:"1px solid "+C.border,fontSize:10,textAlign:"center"}}):React.createElement("span",{style:{background:C.white,padding:"1px 8px",borderRadius:10,fontSize:10,color:C.slate}},String(meal.calories||0)+" kcal")
               ),
               editMode?React.createElement("input",{value:nameVal,onChange:function(e){updateMeal(di,mk,nameField,e.target.value);},style:{width:"100%",fontSize:12,fontWeight:700,color:C.ink,marginBottom:5,padding:"4px 6px",borderRadius:6,border:"1px solid "+C.teal+"60",direction:useAr?"rtl":"ltr"}}):React.createElement("div",{style:{fontSize:12,fontWeight:700,color:C.ink,marginBottom:5}},String(nameVal)),
