@@ -400,6 +400,9 @@ const CASES = [
   {v:"cp",              en:"Cerebral Palsy (Paediatric)", ar:"الشلل الدماغي – أطفال"},
   {v:"autism",          en:"Autism Spectrum (Children)",  ar:"اضطراب التوحد – أطفال"},
   {v:"adhd",            en:"ADHD (Children)",             ar:"فرط الحركة وتشتت الانتباه – أطفال"},
+  {v:"hyperuricemia",   en:"Hyperuricemia / Gout",        ar:"فرط حمض اليوريك / النقرس"},
+  {v:"autoimmune",      en:"Autoimmune Disease",          ar:"أمراض المناعة الذاتية"},
+  {v:"dyslipidemia",    en:"Dyslipidemia",                ar:"اضطراب دهون الدم"},
 ];
 
 const DIETS = [
@@ -415,13 +418,19 @@ const DIETS = [
    macros:"Carbs 45–65% · Protein 10–35% · Fat 20–35%"},
   {v:"bariatric",   en:"🍽️ Bariatric (High-Protein)", ar:"🍽️ حمية ما بعد جراحة السمنة", color:"#E91E8C",
    macros:"Protein 60–80g+ (FIRST priority) · Low simple sugars · Small frequent meals · Phase-based texture"},
+  {v:"anti_inflammatory", en:"🌿 Anti-Inflammatory", ar:"🌿 مضادة للالتهاب", color:"#16A085",
+   macros:"Omega-3 rich · Colourful vegetables/berries · Olive oil · Low refined sugar · Whole foods"},
+  {v:"low_fodmap",  en:"🍵 Low-FODMAP",       ar:"🍵 منخفضة الفودماب", color:"#D35400",
+   macros:"Low fermentable carbs · IBS-friendly · Elimination then reintroduction · Gut-calming"},
 ];
 
 const FREQ = [
-  {v:"5meal",  en:"5–6 Small Meals/Day",    ar:"5–6 وجبات صغيرة/يوم",
-   meals:["Breakfast","Morning Snack","Lunch","Afternoon Snack","Dinner","Evening Snack"]},
+  {v:"3meal",  en:"3 Meals/Day (no snacks)", ar:"3 وجبات فقط/يوم (بدون سناك)",
+   meals:["Breakfast","Lunch","Dinner"]},
   {v:"3plus1", en:"3 Meals + 1 Snack/Day",  ar:"3 وجبات + وجبة خفيفة",
    meals:["Breakfast","Lunch","Snack","Dinner"]},
+  {v:"5meal",  en:"5–6 Small Meals/Day",    ar:"5–6 وجبات صغيرة/يوم",
+   meals:["Breakfast","Morning Snack","Lunch","Afternoon Snack","Dinner","Evening Snack"]},
 ];
 
 const LABS = [
@@ -468,7 +477,7 @@ function ree(w,h,age,gender){
 const AMULT={sedentary:1.2,light:1.375,moderate:1.55,very_active:1.725,extra:1.9};
 const CASE_ADJ={
   obesity_adult:-600,obesity_child:-300,diabetes:-250,hypertension:0,osteoarthritis:-300,
-  underweight_adult:500,underweight_child:400,post_bariatric:0,cp:-100,autism:0,adhd:0,
+  underweight_adult:500,underweight_child:400,post_bariatric:0,cp:-100,autism:0,adhd:0,hyperuricemia:-300,autoimmune:0,dyslipidemia:-400,
 };
 
 function Btn({label,onClick,color,outline,small}){
@@ -563,9 +572,13 @@ function App(){
       if(caseType==="obesity_child") return "\n\nPAEDIATRIC OBESITY (Children) — Endocrine Society/ESPGHAN: Do NOT use aggressive calorie restriction in growing children. Goal is weight MAINTENANCE or slow loss (max 0.5kg/month) while the child grows into their weight. Gentle deficit only (~200-300 kcal). Emphasise: structured meals, no sugar-sweetened beverages, fruit/vegetables 5/day, limit screen-time snacking, family-based approach, age-appropriate physical activity 60min/day. Adequate protein and calcium for growth. Never restrict essential nutrients. Involve the family.";
       if(caseType==="cp") return "\n\nCEREBRAL PALSY (Paediatric) — ESPGHAN: Energy needs often 10-15% LOWER than typical children due to reduced mobility/muscle mass (or HIGHER if severe spasticity/dyskinesia). Use modified equations. Address: oromotor dysfunction and dysphagia (texture modification per IDDSI — specify thickened fluids/puree if needed), constipation (high fibre + fluid), GERD, drooling. Monitor for micronutrient deficiencies (iron, vit D, calcium for bone health given immobility). Position upright 90° for feeding. Consider feeding time/fatigue. Adequate protein 1.0-1.5 g/kg.";
       if(caseType==="autism") return "\n\nAUTISM SPECTRUM (Children) — work WITHIN food selectivity, do NOT force variety. Many children eat <20 accepted foods. Build the plan around preferred foods, fortify nutritionally. Address: sensory texture preferences, mealtime routines/rituals, GI issues (constipation common). Screen for nutrient gaps from restricted diet (iron, zinc, vit D, fibre, calcium). Omega-3 (DHA/EPA) may help. Be cautious with GFCF diets (limited evidence — only if clear benefit). Gradual, low-pressure food introduction.";
+      if(caseType==="hyperuricemia") return "\n\nHYPERURICEMIA / GOUT — purine restriction: AVOID high-purine foods (organ meats/liver/kidney, anchovies, sardines, mussels, red meat excess, yeast extracts, beer/alcohol). LIMIT moderate-purine (some fish, poultry, legumes in moderation). ENCOURAGE: low-fat dairy (urate-lowering), cherries, vitamin C foods, plenty of water (2-3L/day), complex carbs. Avoid fructose/sugar-sweetened drinks (raise uric acid). Gradual weight loss if overweight (rapid loss raises urate). Limit saturated fat.";
+      if(caseType==="autoimmune") return "\n\nAUTOIMMUNE DISEASE — anti-inflammatory approach: emphasise omega-3 (fatty fish, flax, walnuts), colourful antioxidant-rich vegetables and fruits, olive oil, whole grains. Adequate vitamin D, selenium, zinc. Identify and avoid individual trigger foods. Consider gut health (fibre, fermented foods if tolerated). Limit ultra-processed foods, refined sugar, excess saturated/trans fat. Ensure adequate protein for tissue repair. Tailor to specific condition (e.g. coeliac=strict gluten-free, Hashimoto=adequate iodine/selenium).";
+      if(caseType==="dyslipidemia") return "\n\nDYSLIPIDEMIA (NCEP ATP III/AHA) — Saturated fat <7% kcal, dietary cholesterol <200mg/day, ZERO trans fat. Increase soluble fibre 10-25g/day (oats, beans, psyllium, fruit) — lowers LDL. Plant sterols/stanols 2g/day. Omega-3 (fatty fish 2x/week or 2-4g/day) lowers triglycerides. Replace saturated with mono/polyunsaturated fats (olive oil, nuts, avocado). Limit refined carbs and added sugar (raise triglycerides). Limit alcohol. Mediterranean pattern strongly recommended.";
       if(caseType==="adhd") return "\n\nADHD (Children) — stimulant medications (methylphenidate/amphetamines) SUPPRESS APPETITE, especially midday. Strategy: nutrient-dense protein-rich BREAKFAST before medication (improves morning focus), calorie-dense foods when appetite returns (evening), healthy snacks. Omega-3 (DHA/EPA 1-2g/day) has evidence for attention. Stable blood sugar with low-GI complex carbs reduces hyperactivity. Limit artificial food dyes/additives (some patient-reported benefit). Ensure adequate iron, zinc, magnesium (deficiencies worsen symptoms). Monitor growth — appetite suppression can affect weight/height.";
       return "";
     })();
+    const dietRules=(dietType==="low_fodmap")?"\n\nLOW-FODMAP DIET (Monash) — AVOID high-FODMAP: wheat/rye (large amounts), onion, garlic, legumes/beans, milk/soft cheese (lactose), apples/pears/mango/watermelon, honey/high-fructose syrup, cauliflower, mushrooms, sugar-alcohols. ALLOW low-FODMAP: rice, oats, quinoa, lactose-free dairy, hard cheese, carrots, cucumber, spinach, tomato, potato, banana (unripe), strawberry, orange, grapes, eggs, plain meat/fish, garlic-infused oil. Note: this is the elimination phase — reintroduce systematically later.":(dietType==="anti_inflammatory")?"\n\nANTI-INFLAMMATORY DIET — maximise: fatty fish (omega-3), olive oil, colourful vegetables, berries, leafy greens, nuts, turmeric/ginger, green tea, whole grains. Minimise: refined sugar, refined carbs, processed/red meat, trans fats, excess omega-6 oils, fried foods. Mediterranean-style base.":"";
     const bariatricRules=(dietType==="bariatric"||caseType==="post_bariatric")?"\n\nBARIATRIC-SPECIFIC RULES (ASMBS/ASPEN): Protein is the PRIORITY nutrient — 60–80g/day minimum, eat protein FIRST at every meal. NO sugar-sweetened drinks. Avoid simple sugars and high-fat meals (dumping syndrome risk). Small frequent meals only. No drinking fluids with meals — separate fluids from solids by 30 minutes. Chew thoroughly. Texture appropriate to surgical phase. Mandatory supplements: chewable/liquid multivitamin, Calcium CITRATE 1200–1500mg/day (divided, not >600mg/dose), Vitamin D3 3000IU/day, Vitamin B12 350–1000mcg/day, Iron 45–60mg/day, Thiamine. Keep meal calories small and protein-dense.":"";
     // Language selection: generate ONLY the chosen language to keep response small + fast
     const wantEn=(planLang==="en"||planLang==="both");
@@ -581,7 +594,7 @@ function App(){
       return Q+m+Q+":{"+f.join(",")+"}";
     };
     const langNote=(planLang==="ar")?"\n\nIMPORTANT: Generate ALL text content (meal names, items, principles, supplements, flags, rationale) in ARABIC ONLY (Egyptian Arabic). Use the _ar fields. Do NOT generate English.":(planLang==="both")?"\n\nProvide BOTH English and Arabic for every meal (name+name_ar, items+items_ar).":"\n\nGenerate all content in English.";
-    const prompt="You are a clinical dietitian. Generate a 7-day nutrition plan following ASPEN and ESPEN guidelines.\n\nPATIENT: "+name+" | DOB: "+dob+" | Age: "+age+" | Gender: "+gender+"\nWeight: "+wt+"kg | Height: "+ht+"cm | BMI: "+BMI+" | Activity: "+activity+"\n\nLABS:\n"+(labLines||"None")+"\n\nCOMORBIDITIES: "+(morbs.join(", ")||"None")+"\nMEDICATIONS: "+(meds||"None")+"\nALLERGIES: "+(allergies||"None")+"\n\nCASE: "+(caseObj?caseObj.en:caseType)+"\nDIET: "+(dietObj?dietObj.en:dietType)+" — "+(dietObj?dietObj.macros:"")+"\nMEALS/DAY: "+freqObj.en+" ("+mealSlots+")\nCALORIES: "+finalCals+" kcal/day\n\nNOTES: "+(notes||"None")+caseRules+bariatricRules+pedContext+"\n\n"+EXCHANGE_REF+"\n\nReturn ONLY valid JSON, no markdown:\n{\n  \"summary\":{\"calories\":\""+finalCals+" kcal/day\",\"protein\":\"Xg\",\"carbs\":\"Xg\",\"fat\":\"Xg\",\"fiber\":\"Xg\",\"fluid\":\"XL\",\"rationale\":\"2 sentences citing ASPEN/ESPEN\",\"rationale_ar\":\"جملتان بالعربي\"},\n  \"flags\":[\"clinical warning\"],\"flags_ar\":[\"تحذير سريري\"],\n  \"keyPrinciples\":[\"p1\",\"p2\",\"p3\",\"p4\",\"p5\"],\"keyPrinciples_ar\":[\"المبدأ ١\",\"المبدأ ٢\",\"المبدأ ٣\",\"المبدأ ٤\",\"المبدأ ٥\"],\n  \"days\":[\n    {\"day\":\"Monday\",\"meals\":{"+freqObj.meals.map(mealTpl).join(",")+" },\"total\":0}\n  ],\n  \"lifestyle\":[\"advice\"],\"lifestyle_ar\":[\"نصيحة\"],\n  \"followUp\":\"recommendation\",\"followUp_ar\":\"التوصية بالعربي\"\n}\nUse the Egyptian Food Composition Tables (National Nutrition Institute, Cairo) and USDA FoodData Central for accurate calorie and macronutrient values per portion. State ALL portions in HOUSEHOLD MEASURES that patients understand: cups, tablespoons, teaspoons, pieces, slices, palm-size, medium or large fruit — NOT grams. For example say 1 cup cooked rice instead of 120g rice, 2 tablespoons olive oil instead of 30g, 1 medium apple instead of 150g apple, 1 palm-size grilled chicken instead of 120g. Use the Exchange List serving sizes as the household portions. All 7 days REQUIRED. Egyptian/Middle Eastern food. Keep item descriptions concise with household measures (e.g. \"Ful medames 1 cup\", \"Whole wheat bread 2 slices\", \"Grilled chicken 1 palm-size\"). Limit each meal to EXACTLY 2 items max. Keep notes very short (under 8 words) or omit. Valid complete JSON only. No markdown."+langNote;
+    const prompt="You are a clinical dietitian. Generate a 7-day nutrition plan following ASPEN and ESPEN guidelines.\n\nPATIENT: "+name+" | DOB: "+dob+" | Age: "+age+" | Gender: "+gender+"\nWeight: "+wt+"kg | Height: "+ht+"cm | BMI: "+BMI+" | Activity: "+activity+"\n\nLABS:\n"+(labLines||"None")+"\n\nCOMORBIDITIES: "+(morbs.join(", ")||"None")+"\nMEDICATIONS: "+(meds||"None")+"\nALLERGIES: "+(allergies||"None")+"\n\nCASE: "+(caseObj?caseObj.en:caseType)+"\nDIET: "+(dietObj?dietObj.en:dietType)+" — "+(dietObj?dietObj.macros:"")+"\nMEALS/DAY: "+freqObj.en+" ("+mealSlots+")\nCALORIES: "+finalCals+" kcal/day\n\nNOTES: "+(notes||"None")+caseRules+bariatricRules+dietRules+pedContext+"\n\n"+EXCHANGE_REF+"\n\nReturn ONLY valid JSON, no markdown:\n{\n  \"summary\":{\"calories\":\""+finalCals+" kcal/day\",\"protein\":\"Xg\",\"carbs\":\"Xg\",\"fat\":\"Xg\",\"fiber\":\"Xg\",\"fluid\":\"XL\",\"rationale\":\"2 sentences citing ASPEN/ESPEN\",\"rationale_ar\":\"جملتان بالعربي\"},\n  \"flags\":[\"clinical warning\"],\"flags_ar\":[\"تحذير سريري\"],\n  \"keyPrinciples\":[\"p1\",\"p2\",\"p3\",\"p4\",\"p5\"],\"keyPrinciples_ar\":[\"المبدأ ١\",\"المبدأ ٢\",\"المبدأ ٣\",\"المبدأ ٤\",\"المبدأ ٥\"],\n  \"days\":[\n    {\"day\":\"Monday\",\"meals\":{"+freqObj.meals.map(mealTpl).join(",")+" },\"total\":0}\n  ],\n  \"lifestyle\":[\"advice\"],\"lifestyle_ar\":[\"نصيحة\"],\n  \"followUp\":\"recommendation\",\"followUp_ar\":\"التوصية بالعربي\"\n}\nUse the Egyptian Food Composition Tables (National Nutrition Institute, Cairo) and USDA FoodData Central for accurate calorie and macronutrient values per portion. State EVERY portion in GRAMS followed by its household equivalent in brackets (spoons, cups, hand/palm size, or finger size) so patients can measure easily. Format: amount in grams then the household measure in parentheses. For example: 120g rice (about 1 cup), 30g olive oil (2 tablespoons), 150g apple (1 medium), 120g grilled chicken (palm-size piece), 90g cheese (2 fingers), 15g nuts (1 tablespoon). ALWAYS give BOTH the grams AND the household equivalent for every item. All 7 days REQUIRED. Egyptian/Middle Eastern food. Each item = grams + household measure in brackets (e.g. \"Ful medames 200g (1 cup)\", \"Whole wheat bread 60g (2 slices)\", \"Grilled chicken 120g (palm-size)\"). Limit each meal to EXACTLY 2 items max. Keep notes very short (under 8 words) or omit. Valid complete JSON only. No markdown."+langNote;
 
     try{
       const res=await fetch("https://api.anthropic.com/v1/messages",{
@@ -998,13 +1011,13 @@ function App(){
       })
     ),
     React.createElement("div",{style:{fontSize:12,fontWeight:700,color:C.slate,marginBottom:10}},ar?"عدد الوجبات *":"MEAL FREQUENCY *"),
-    React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}},
+    React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}},
       FREQ.map(function(f){
         var sel=freq===f.v;
         return React.createElement("div",{key:f.v,onClick:function(){setFreq(f.v);},
-          style:{border:"2px solid "+(sel?C.teal:C.border),borderRadius:10,padding:"12px 14px",cursor:"pointer",background:sel?C.tealLt:C.white}},
-          React.createElement("div",{style:{fontWeight:700,color:sel?C.teal:C.ink,fontSize:13}},f.en),
-          React.createElement("div",{style:{fontSize:11,color:C.slate,marginTop:4}},f.meals.join(" · "))
+          style:{border:"2px solid "+(sel?C.teal:C.border),borderRadius:10,padding:"12px 12px",cursor:"pointer",background:sel?C.tealLt:C.white}},
+          React.createElement("div",{style:{fontWeight:700,color:sel?C.teal:C.ink,fontSize:12.5}},f.en),
+          React.createElement("div",{style:{fontSize:10,color:C.slate,marginTop:4}},f.meals.length+(ar?" وجبات":" meals"))
         );
       })
     ),
