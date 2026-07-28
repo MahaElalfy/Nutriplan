@@ -405,6 +405,55 @@ async function supaDelete(id){
   return true;
 }
 
+// ── Reference Library (Supabase) ──────────────────────────────────
+async function refInsert(record){
+  const res=await fetch(SUPA_URL+"/rest/v1/nutrition_references",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY,"Prefer":"return=representation"},
+    body:JSON.stringify(record)
+  });
+  if(!res.ok){throw new Error("Save ref failed: "+await res.text());}
+  return await res.json();
+}
+async function refList(){
+  const res=await fetch(SUPA_URL+"/rest/v1/nutrition_references?select=*&order=created_at.desc",{
+    headers:{"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY}
+  });
+  if(!res.ok){throw new Error("Load refs failed: "+await res.text());}
+  return await res.json();
+}
+async function refUpdate(id,patch){
+  const res=await fetch(SUPA_URL+"/rest/v1/nutrition_references?id=eq."+id,{
+    method:"PATCH",
+    headers:{"Content-Type":"application/json","apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY},
+    body:JSON.stringify(patch)
+  });
+  if(!res.ok){throw new Error("Update ref failed: "+await res.text());}
+  return true;
+}
+async function refDelete(id){
+  const res=await fetch(SUPA_URL+"/rest/v1/nutrition_references?id=eq."+id,{
+    method:"DELETE",
+    headers:{"apikey":SUPA_KEY,"Authorization":"Bearer "+SUPA_KEY}
+  });
+  if(!res.ok){throw new Error("Delete ref failed: "+await res.text());}
+  return true;
+}
+// Use the AI to extract text from an uploaded PDF (base64) — one-time at upload
+async function extractPdfText(base64,apiKey){
+  const res=await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:8000,messages:[{role:"user",content:[
+      {type:"document",source:{type:"base64",media_type:"application/pdf",data:base64}},
+      {type:"text",text:"Extract the key clinical/nutritional guidance from this document as concise plain text (guidelines, targets, food lists, protocols). Focus on actionable rules a dietitian would apply. No preamble."}
+    ]}]})
+  });
+  if(!res.ok){throw new Error("PDF read failed ("+res.status+"): "+(await res.text()).slice(0,200));}
+  const data=await res.json();
+  return (data.content&&data.content[0]&&data.content[0].text)||"";
+}
+
 const CASES = [
   {v:"obesity_adult",   en:"Obesity – Adults",           ar:"السمنة – البالغون"},
   {v:"obesity_child",   en:"Obesity – Children",         ar:"السمنة – الأطفال"},
@@ -417,6 +466,10 @@ const CASES = [
   {v:"cp",              en:"Cerebral Palsy (Paediatric)", ar:"الشلل الدماغي – أطفال"},
   {v:"autism",          en:"Autism Spectrum (Children)",  ar:"اضطراب التوحد – أطفال"},
   {v:"adhd",            en:"ADHD (Children)",             ar:"فرط الحركة وتشتت الانتباه – أطفال"},
+  {v:"hyperuricemia",   en:"Hyperuricemia / Gout",        ar:"فرط حمض اليوريك / النقرس"},
+  {v:"autoimmune",      en:"Autoimmune Disease",          ar:"أمراض المناعة الذاتية"},
+  {v:"dyslipidemia",    en:"Dyslipidemia",                ar:"اضطراب دهون الدم"},
+  {v:"pregnancy_bariatric", en:"Pregnancy after Sleeve/Bypass", ar:"الحامل بعد التكميم / التحويل"},
 ];
 
 const DIETS = [
@@ -432,14 +485,33 @@ const DIETS = [
    macros:"Carbs 45–65% · Protein 10–35% · Fat 20–35%"},
   {v:"bariatric",   en:"🍽️ Bariatric (High-Protein)", ar:"🍽️ حمية ما بعد جراحة السمنة", color:"#E91E8C",
    macros:"Protein 60–80g+ (FIRST priority) · Low simple sugars · Small frequent meals · Phase-based texture"},
+  {v:"anti_inflammatory", en:"🌿 Anti-Inflammatory", ar:"🌿 مضادة للالتهاب", color:"#16A085",
+   macros:"Omega-3 rich · Colourful vegetables/berries · Olive oil · Low refined sugar · Whole foods"},
+  {v:"low_fodmap",  en:"🍵 Low-FODMAP",       ar:"🍵 منخفضة الفودماب", color:"#D35400",
+   macros:"Low fermentable carbs · IBS-friendly · Elimination then reintroduction · Gut-calming"},
+  {v:"very_low_carb", en:"🥓 Very Low Carb (VLCD)", ar:"🥓 منخفض جداً بالكارب", color:"#8E44AD",
+   macros:"Carbs <10% (20–50g/day) · Protein 25–30% · Fat 60–70% · Close ketosis"},
+  {v:"carb_cycling", en:"🔄 Carb Cycling", ar:"🔄 دورة الكربوهيدرات", color:"#2C82C9",
+   macros:"Alternating high/low carb days · High on training days · Low on rest days · Protein steady"},
+  {v:"keto",        en:"🥑 Ketogenic (Keto)", ar:"🥑 كيتو دايت", color:"#27AE60",
+   macros:"Carbs <5–10% (20–30g net) · Protein 20% · Fat 70–75% · Nutritional ketosis"},
+  {v:"glp1_diet",   en:"💉 GLP-1 Support (Ozempic/Wegovy)", ar:"💉 مناسب لحقن التخسيس GLP-1", color:"#E74C3C",
+   macros:"High protein (priority) · Adequate fibre · Small volumes · Anti-nausea · Prevent muscle loss"},
 ];
 
 const FREQ = [
-  {v:"5meal",  en:"5–6 Small Meals/Day",    ar:"5–6 وجبات صغيرة/يوم",
-   meals:["Breakfast","Morning Snack","Lunch","Afternoon Snack","Dinner","Evening Snack"]},
+  {v:"3meal",  en:"3 Meals/Day (no snacks)", ar:"3 وجبات فقط/يوم (بدون سناك)",
+   meals:["Breakfast","Lunch","Dinner"]},
   {v:"3plus1", en:"3 Meals + 1 Snack/Day",  ar:"3 وجبات + وجبة خفيفة",
    meals:["Breakfast","Lunch","Snack","Dinner"]},
+  {v:"3plus2", en:"3 Meals + 2 Snacks/Day", ar:"3 وجبات + 2 سناك/يوم",
+   meals:["Breakfast","Morning Snack","Lunch","Afternoon Snack","Dinner"]},
+  {v:"5meal",  en:"5–6 Small Meals/Day",    ar:"5–6 وجبات صغيرة/يوم",
+   meals:["Breakfast","Morning Snack","Lunch","Afternoon Snack","Dinner","Evening Snack"]},
 ];
+
+const MEAL_AR={Breakfast:"الإفطار","Morning Snack":"وجبة الصباح",Lunch:"الغداء","Afternoon Snack":"وجبة العصر",Dinner:"العشاء","Evening Snack":"وجبة المساء",Snack:"وجبة خفيفة"};
+const DAY_AR={Monday:"الإثنين",Tuesday:"الثلاثاء",Wednesday:"الأربعاء",Thursday:"الخميس",Friday:"الجمعة",Saturday:"السبت",Sunday:"الأحد"};
 
 const LABS = [
   {k:"hba1c",   en:"HbA1c (%)",             ref:"<5.7%"},
@@ -485,7 +557,7 @@ function ree(w,h,age,gender){
 const AMULT={sedentary:1.2,light:1.375,moderate:1.55,very_active:1.725,extra:1.9};
 const CASE_ADJ={
   obesity_adult:-600,obesity_child:-300,diabetes:-250,hypertension:0,osteoarthritis:-300,
-  underweight_adult:500,underweight_child:400,post_bariatric:0,cp:-100,autism:0,adhd:0,
+  underweight_adult:500,underweight_child:400,post_bariatric:0,cp:-100,autism:0,adhd:0,hyperuricemia:-300,autoimmune:0,dyslipidemia:-400,pregnancy_bariatric:300,
 };
 
 function Btn({label,onClick,color,outline,small}){
@@ -550,6 +622,13 @@ function App(){
       })
     );
   }
+  const [savedToDb,setSavedToDb]=useState(false);
+  const [editMode,setEditMode]=useState(false);
+  const [showRefs,setShowRefs]=useState(false);
+  const [refs,setRefs]=useState([]);
+  const [refTitle,setRefTitle]=useState("");
+  const [refContent,setRefContent]=useState("");
+  const [refBusy,setRefBusy]=useState("");
 
   // Patient
   const [name,setName]=useState(""); const [dob,setDob]=useState("");
@@ -564,6 +643,7 @@ function App(){
   // Diet config
   const [caseType,setCaseType]=useState(""); const [dietType,setDietType]=useState("");
   const [freq,setFreq]=useState("3plus1"); const [notes,setNotes]=useState("");
+  const [planLang,setPlanLang]=useState("en");
   const [calOverride,setCalOverride]=useState(""); const [useOverride,setUseOverride]=useState(false);
 
   const BMI=bmi(wt,ht);
@@ -589,6 +669,17 @@ function App(){
     if(!wt||!ht){setErr("Weight and height are required.");return;}
     if(!dietType){setErr("Please select a diet type.");return;}
     setErr("");setLoading(true);setPlan(null);
+    // Pull active reference materials uploaded by the doctor
+    let refContext="";
+    try{
+      const allRefs=await refList();
+      const active=allRefs.filter(function(r){return r.active;});
+      if(active.length>0){
+        let combined=active.map(function(r){return "["+r.title+"]\n"+r.content;}).join("\n\n");
+        if(combined.length>7000) combined=combined.slice(0,7000)+"...";
+        refContext="\n\n═══ DOCTOR'S REFERENCE MATERIALS (follow these clinical guidelines/protocols) ═══\n"+combined+"\n═══ END REFERENCES ═══";
+      }
+    }catch(refErr){ /* references optional — continue without */ }
     const labLines=LABS.filter(function(f){return labs[f.k];}).map(function(f){return "  "+f.en+": "+labs[f.k]+" (Ref: "+f.ref+")";}).join("\n");
     const mealSlots=freqObj.meals.join(", ");
     const pedStatus=(parseFloat(age)<19&&parseFloat(age)>=2)?pedGrowthStatus(BMI,age,gender):null;
@@ -597,17 +688,36 @@ function App(){
       if(caseType==="obesity_child") return "\n\nPAEDIATRIC OBESITY (Children) — Endocrine Society/ESPGHAN: Do NOT use aggressive calorie restriction in growing children. Goal is weight MAINTENANCE or slow loss (max 0.5kg/month) while the child grows into their weight. Gentle deficit only (~200-300 kcal). Emphasise: structured meals, no sugar-sweetened beverages, fruit/vegetables 5/day, limit screen-time snacking, family-based approach, age-appropriate physical activity 60min/day. Adequate protein and calcium for growth. Never restrict essential nutrients. Involve the family.";
       if(caseType==="cp") return "\n\nCEREBRAL PALSY (Paediatric) — ESPGHAN: Energy needs often 10-15% LOWER than typical children due to reduced mobility/muscle mass (or HIGHER if severe spasticity/dyskinesia). Use modified equations. Address: oromotor dysfunction and dysphagia (texture modification per IDDSI — specify thickened fluids/puree if needed), constipation (high fibre + fluid), GERD, drooling. Monitor for micronutrient deficiencies (iron, vit D, calcium for bone health given immobility). Position upright 90° for feeding. Consider feeding time/fatigue. Adequate protein 1.0-1.5 g/kg.";
       if(caseType==="autism") return "\n\nAUTISM SPECTRUM (Children) — work WITHIN food selectivity, do NOT force variety. Many children eat <20 accepted foods. Build the plan around preferred foods, fortify nutritionally. Address: sensory texture preferences, mealtime routines/rituals, GI issues (constipation common). Screen for nutrient gaps from restricted diet (iron, zinc, vit D, fibre, calcium). Omega-3 (DHA/EPA) may help. Be cautious with GFCF diets (limited evidence — only if clear benefit). Gradual, low-pressure food introduction.";
+      if(caseType==="pregnancy_bariatric") return "\n\nPREGNANCY AFTER BARIATRIC SURGERY (Sleeve/Bypass) — high-risk nutritional state combining pregnancy demands with post-bariatric malabsorption. PRIORITIES: Protein 60–100g/day (critical for foetal growth + maternal muscle). Small frequent meals (reduced gastric capacity + nausea). PREVENT deficiencies aggressively — these harm the foetus: Folate/B12 (neural tube), Iron (anaemia), Calcium+Vit D (bone), B1 thiamine (avoid hyperemesis-related Wernicke), Vit A (use beta-carotene form, avoid retinol excess). Continue bariatric supplements adjusted for pregnancy (prenatal + bariatric). Monitor weight gain per IOM (bariatric patients often need less). Screen for dumping — avoid simple sugars (also helps gestational glucose). Avoid: alcohol, raw/undercooked foods, high-mercury fish, excess caffeine. Adequate hydration between meals. Coordinate with OB and bariatric team.";
+      if(caseType==="hyperuricemia") return "\n\nHYPERURICEMIA / GOUT — purine restriction: AVOID high-purine foods (organ meats/liver/kidney, anchovies, sardines, mussels, red meat excess, yeast extracts, beer/alcohol). LIMIT moderate-purine (some fish, poultry, legumes in moderation). ENCOURAGE: low-fat dairy (urate-lowering), cherries, vitamin C foods, plenty of water (2-3L/day), complex carbs. Avoid fructose/sugar-sweetened drinks (raise uric acid). Gradual weight loss if overweight (rapid loss raises urate). Limit saturated fat.";
+      if(caseType==="autoimmune") return "\n\nAUTOIMMUNE DISEASE — anti-inflammatory approach: emphasise omega-3 (fatty fish, flax, walnuts), colourful antioxidant-rich vegetables and fruits, olive oil, whole grains. Adequate vitamin D, selenium, zinc. Identify and avoid individual trigger foods. Consider gut health (fibre, fermented foods if tolerated). Limit ultra-processed foods, refined sugar, excess saturated/trans fat. Ensure adequate protein for tissue repair. Tailor to specific condition (e.g. coeliac=strict gluten-free, Hashimoto=adequate iodine/selenium).";
+      if(caseType==="dyslipidemia") return "\n\nDYSLIPIDEMIA (NCEP ATP III/AHA) — Saturated fat <7% kcal, dietary cholesterol <200mg/day, ZERO trans fat. Increase soluble fibre 10-25g/day (oats, beans, psyllium, fruit) — lowers LDL. Plant sterols/stanols 2g/day. Omega-3 (fatty fish 2x/week or 2-4g/day) lowers triglycerides. Replace saturated with mono/polyunsaturated fats (olive oil, nuts, avocado). Limit refined carbs and added sugar (raise triglycerides). Limit alcohol. Mediterranean pattern strongly recommended.";
       if(caseType==="adhd") return "\n\nADHD (Children) — stimulant medications (methylphenidate/amphetamines) SUPPRESS APPETITE, especially midday. Strategy: nutrient-dense protein-rich BREAKFAST before medication (improves morning focus), calorie-dense foods when appetite returns (evening), healthy snacks. Omega-3 (DHA/EPA 1-2g/day) has evidence for attention. Stable blood sugar with low-GI complex carbs reduces hyperactivity. Limit artificial food dyes/additives (some patient-reported benefit). Ensure adequate iron, zinc, magnesium (deficiencies worsen symptoms). Monitor growth — appetite suppression can affect weight/height.";
       return "";
     })();
+    const dietRules=(dietType==="keto")?"\n\nKETOGENIC DIET — net carbs 20–30g/day MAX (<5–10% kcal), fat 70–75%, moderate protein 20%. Foods: eggs, meat, fish, poultry, cheese, butter, olive/coconut oil, avocado, nuts/seeds, leafy greens, low-carb vegetables (broccoli, cauliflower, zucchini, spinach). AVOID: all grains, sugar, most fruit (small berries only), starchy vegetables, legumes, bread/pasta/rice. Ensure electrolytes (sodium, potassium, magnesium) to prevent keto-flu. Adequate fibre from low-carb veg. NOT for: type 1 diabetes without supervision, pregnancy, kidney disease. Track net carbs strictly.":(dietType==="very_low_carb")?"\n\nVERY LOW CARB (VLCD) — carbs 20–50g/day (<10% kcal), protein 25–30%, fat 60–70%. Less strict than keto but still low. Emphasise: protein sources, non-starchy vegetables, healthy fats, moderate low-sugar fruit. Limit: grains, sugar, starchy foods. Good for insulin resistance, PCOS, weight loss, type 2 diabetes (monitor medications — risk of hypoglycaemia, adjust with physician).":(dietType==="carb_cycling")?"\n\nCARB CYCLING — alternate HIGH-carb and LOW-carb days across the week. HIGH-carb days (2–3/week, e.g. training days): carbs 40–50% (complex carbs — rice, oats, potato, fruit). LOW-carb days (rest days): carbs 15–20% (emphasise protein + healthy fats + vegetables). Protein stays consistent daily (1.6–2.2 g/kg). Clearly label each of the 7 days as HIGH-carb or LOW-carb in the plan. Useful for body recomposition, athletes, breaking weight plateaus.":(dietType==="glp1_diet")?"\n\nGLP-1 SUPPORT DIET (for patients on Ozempic/Wegovy/Mounjaro/semaglutide/tirzepatide) — these drugs suppress appetite and slow gastric emptying. PRIORITIES: Protein FIRST every meal (60–100g/day) to PREVENT muscle loss during rapid weight loss. Small portions (early satiety — patients feel full fast). Adequate fibre + hydration (prevent constipation, common side effect). ANTI-NAUSEA strategy: bland, low-fat, non-greasy foods; avoid large fatty meals (worsen nausea/reflux); eat slowly. Avoid: fried/greasy foods, excess sugar, carbonated drinks, alcohol. Nutrient-dense small meals (appetite is limited — every bite must count). Ensure vitamins/minerals despite low intake.":(dietType==="low_fodmap")?"\n\nLOW-FODMAP DIET (Monash) — AVOID high-FODMAP: wheat/rye (large amounts), onion, garlic, legumes/beans, milk/soft cheese (lactose), apples/pears/mango/watermelon, honey/high-fructose syrup, cauliflower, mushrooms, sugar-alcohols. ALLOW low-FODMAP: rice, oats, quinoa, lactose-free dairy, hard cheese, carrots, cucumber, spinach, tomato, potato, banana (unripe), strawberry, orange, grapes, eggs, plain meat/fish, garlic-infused oil. Note: this is the elimination phase — reintroduce systematically later.":(dietType==="anti_inflammatory")?"\n\nANTI-INFLAMMATORY DIET — maximise: fatty fish (omega-3), olive oil, colourful vegetables, berries, leafy greens, nuts, turmeric/ginger, green tea, whole grains. Minimise: refined sugar, refined carbs, processed/red meat, trans fats, excess omega-6 oils, fried foods. Mediterranean-style base.":"";
     const bariatricRules=(dietType==="bariatric"||caseType==="post_bariatric")?"\n\nBARIATRIC-SPECIFIC RULES (ASMBS/ASPEN): Protein is the PRIORITY nutrient — 60–80g/day minimum, eat protein FIRST at every meal. NO sugar-sweetened drinks. Avoid simple sugars and high-fat meals (dumping syndrome risk). Small frequent meals only. No drinking fluids with meals — separate fluids from solids by 30 minutes. Chew thoroughly. Texture appropriate to surgical phase. Mandatory supplements: chewable/liquid multivitamin, Calcium CITRATE 1200–1500mg/day (divided, not >600mg/dose), Vitamin D3 3000IU/day, Vitamin B12 350–1000mcg/day, Iron 45–60mg/day, Thiamine. Keep meal calories small and protein-dense.":"";
-    const prompt="You are a clinical dietitian. Generate a 7-day nutrition plan following ASPEN and ESPEN guidelines.\n\nPATIENT: "+name+" | DOB: "+dob+" | Age: "+age+" | Gender: "+gender+"\nWeight: "+wt+"kg | Height: "+ht+"cm | BMI: "+BMI+" | Activity: "+activity+"\n\nLABS:\n"+(labLines||"None")+"\n\nCOMORBIDITIES: "+(morbs.join(", ")||"None")+"\nMEDICATIONS: "+(meds||"None")+"\nALLERGIES: "+(allergies||"None")+"\n\nCASE: "+(caseObj?caseObj.en:caseType)+"\nDIET: "+(dietObj?dietObj.en:dietType)+" — "+(dietObj?dietObj.macros:"")+"\nMEALS/DAY: "+freqObj.en+" ("+mealSlots+")\nCALORIES: "+finalCals+" kcal/day\n\nNOTES: "+(notes||"None")+caseRules+bariatricRules+pedContext+"\n\n"+EXCHANGE_REF+"\n\nReturn ONLY valid JSON, no markdown:\n{\n  \"summary\":{\"calories\":\""+finalCals+" kcal/day\",\"protein\":\"Xg\",\"carbs\":\"Xg\",\"fat\":\"Xg\",\"fiber\":\"Xg\",\"fluid\":\"XL\",\"rationale\":\"2 sentences citing ASPEN/ESPEN\",\"rationale_ar\":\"جملتان بالعربي\"},\n  \"flags\":[\"clinical warning\"],\"flags_ar\":[\"تحذير سريري\"],\n  \"supplements\":[{\"name\":\"x\",\"name_ar\":\"الاسم بالعربي\",\"dose\":\"x\",\"reason\":\"x\",\"reason_ar\":\"السبب بالعربي\"}],\n  \"keyPrinciples\":[\"p1\",\"p2\",\"p3\",\"p4\",\"p5\"],\"keyPrinciples_ar\":[\"المبدأ ١\",\"المبدأ ٢\",\"المبدأ ٣\",\"المبدأ ٤\",\"المبدأ ٥\"],\n  \"days\":[\n    {\"day\":\"Monday\",\"meals\":{"+freqObj.meals.map(function(m){return "\""+m+"\":{\"name\":\"English name\",\"name_ar\":\"الاسم بالعربي\",\"items\":[\"English item with grams\"],\"items_ar\":[\"العنصر بالعربية مع الكمية\"],\"calories\":000,\"notes\":\"tip\"}";}).join(",")+" },\"total\":0}\n  ],\n  \"lifestyle\":[\"advice\"],\"lifestyle_ar\":[\"نصيحة\"],\n  \"followUp\":\"recommendation\",\"followUp_ar\":\"التوصية بالعربي\"\n}\nUse the Egyptian Food Composition Tables (National Nutrition Institute, Cairo) and USDA FoodData Central for accurate calorie and macronutrient values per portion. State portion in grams/household measures. All 7 days REQUIRED. Egyptian/Middle Eastern food. Keep item descriptions concise (e.g. \"Ful medames 150g\", \"Whole wheat bread 2 slices\"). Limit each meal to 2-3 items. IMPORTANT: Provide BOTH English (name, items) AND Arabic (name_ar, items_ar) for EVERY meal. The Arabic must be a proper Egyptian-Arabic translation of food names and portions — for example English name Ful Medames with Egg becomes Arabic فول مدمس بالبيض, and English item Ful medames 200g becomes Arabic فول مدمس ٢٠٠ جرام. Never leave name_ar or items_ar empty. Valid complete JSON only. No markdown.";
+    // Language selection: generate ONLY the chosen language to keep response small + fast
+    const wantEn=(planLang==="en"||planLang==="both");
+    const wantAr=(planLang==="ar"||planLang==="both");
+    var Q=String.fromCharCode(34);
+    const mealTpl=function(m){
+      var f=[];
+      if(wantEn) f.push(Q+"name"+Q+":"+Q+"English name"+Q);
+      if(wantAr) f.push(Q+"name_ar"+Q+":"+Q+"الاسم بالعربي"+Q);
+      if(wantEn) f.push(Q+"items"+Q+":["+Q+"item with grams"+Q+"]");
+      if(wantAr) f.push(Q+"items_ar"+Q+":["+Q+"العنصر بالكمية"+Q+"]");
+      f.push(Q+"calories"+Q+":000");
+      return Q+m+Q+":{"+f.join(",")+"}";
+    };
+    const langNote=(planLang==="ar")?"\n\n🔴 CRITICAL LANGUAGE RULE: This plan is for ARABIC-SPEAKING patients. EVERY single text value — meal names (name_ar), food items (items_ar), principles (keyPrinciples_ar), flags (flags_ar), rationale (rationale_ar) — MUST be written in EGYPTIAN ARABIC. Food names like 'Ful Medames', 'Grilled Chicken', 'Lentil Soup' MUST be Arabic: 'فول مدمس', 'فراخ مشوية', 'شوربة عدس'. Portions stay readable: 'فول مدمس ٢٠٠ جرام (كوب واحد)'. Do NOT output any English words in the _ar fields. Fill ONLY the _ar fields, leave English fields empty or minimal.":(planLang==="both")?"\n\n🔴 CRITICAL: For EVERY meal you MUST fill BOTH the English fields (name, items) AND the Arabic fields (name_ar, items_ar). The name_ar and items_ar must be proper Egyptian Arabic translations — e.g. name:'Ful Medames' name_ar:'فول مدمس', items:['Ful medames 200g (1 cup)'] items_ar:['فول مدمس ٢٠٠ جرام (كوب واحد)']. NEVER leave name_ar or items_ar empty or in English. Also translate flags_ar, keyPrinciples_ar, rationale_ar to Arabic.":"\n\nGenerate all content in English.";
+    const prompt="You are a clinical dietitian. Generate a 7-day nutrition plan following ASPEN and ESPEN guidelines.\n\nPATIENT: "+name+" | DOB: "+dob+" | Age: "+age+" | Gender: "+gender+"\nWeight: "+wt+"kg | Height: "+ht+"cm | BMI: "+BMI+" | Activity: "+activity+"\n\nLABS:\n"+(labLines||"None")+"\n\nCOMORBIDITIES: "+(morbs.join(", ")||"None")+"\nMEDICATIONS: "+(meds||"None")+"\nALLERGIES: "+(allergies||"None")+"\n\nCASE: "+(caseObj?caseObj.en:caseType)+"\nDIET: "+(dietObj?dietObj.en:dietType)+" — "+(dietObj?dietObj.macros:"")+"\nMEALS/DAY: "+freqObj.en+" ("+mealSlots+")\nCALORIES: "+finalCals+" kcal/day\n\nNOTES: "+(notes||"None")+refContext+caseRules+bariatricRules+dietRules+pedContext+"\n\n"+EXCHANGE_REF+"\n\nReturn ONLY valid JSON, no markdown:\n{\n  \"summary\":{\"calories\":\""+finalCals+" kcal/day\",\"protein\":\"Xg\",\"carbs\":\"Xg\",\"fat\":\"Xg\",\"fiber\":\"Xg\",\"fluid\":\"XL\",\"rationale\":\"2 sentences citing ASPEN/ESPEN\",\"rationale_ar\":\"جملتان بالعربي\"},\n  \"flags\":[\"clinical warning\"],\"flags_ar\":[\"تحذير سريري\"],\n  \"keyPrinciples\":[\"p1\",\"p2\",\"p3\",\"p4\",\"p5\"],\"keyPrinciples_ar\":[\"المبدأ ١\",\"المبدأ ٢\",\"المبدأ ٣\",\"المبدأ ٤\",\"المبدأ ٥\"],\n  \"days\":[\n    {\"day\":\"Monday\",\"meals\":{"+freqObj.meals.map(mealTpl).join(",")+" },\"total\":0}\n  ],\n  \"lifestyle\":[\"advice\"],\"lifestyle_ar\":[\"نصيحة\"],\n  \"followUp\":\"recommendation\",\"followUp_ar\":\"التوصية بالعربي\"\n}\nUse the Egyptian Food Composition Tables (National Nutrition Institute, Cairo) and USDA FoodData Central for accurate calorie and macronutrient values per portion. State EVERY portion in GRAMS followed by its household equivalent in brackets (spoons, cups, hand/palm size, or finger size) so patients can measure easily. Format: amount in grams then the household measure in parentheses. For example: 120g rice (about 1 cup), 30g olive oil (2 tablespoons), 150g apple (1 medium), 120g grilled chicken (palm-size piece), 90g cheese (2 fingers), 15g nuts (1 tablespoon). ALWAYS give BOTH the grams AND the household equivalent for every item. All 7 days REQUIRED. Egyptian/Middle Eastern food. Each item = grams + household measure in brackets (e.g. \"Ful medames 200g (1 cup)\", \"Whole wheat bread 60g (2 slices)\", \"Grilled chicken 120g (palm-size)\"). Limit each meal to EXACTLY 2 items max. Keep notes very short (under 8 words) or omit. Valid complete JSON only. No markdown."+langNote;
 
     try{
       const res=await fetch("https://api.anthropic.com/v1/messages",{
         method:"POST",
         headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:8000,stream:true,messages:[{role:"user",content:prompt}]})
+        body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:16000,stream:true,messages:[{role:"user",content:prompt}]})
       });
       if(!res.ok){
         let errBody="";
@@ -649,47 +759,51 @@ function App(){
       setSaveMsg("");
       if(!text){throw new Error("Empty response. Check API key and billing credit at console.anthropic.com");}
       let cleaned=text.replace(/```json|```/g,"").trim();
-      let parsed;
-      try{
-        parsed=JSON.parse(cleaned);
-      }catch(parseErr){
-        // Response was truncated - try to repair by closing open structures
-        let repaired=cleaned;
-        // Remove any trailing incomplete content after last complete day
-        const lastBrace=repaired.lastIndexOf("}");
-        // Count unclosed brackets and try to close them
-        const openCurly=(repaired.match(/{/g)||[]).length;
-        const closeCurly=(repaired.match(/}/g)||[]).length;
-        const openSquare=(repaired.match(/\[/g)||[]).length;
-        const closeSquare=(repaired.match(/]/g)||[]).length;
-        // Trim to last complete object then close everything
-        if(lastBrace>0){repaired=repaired.slice(0,lastBrace+1);}
-        for(let i=0;i<(openSquare-closeSquare);i++)repaired+="]";
-        for(let i=0;i<(openCurly-closeCurly);i++)repaired+="}";
+      let parsed=null;
+      // Attempt 1: parse as-is
+      try{ parsed=JSON.parse(cleaned); }catch(e1){ parsed=null; }
+      // Attempt 2: bracket-balance repair
+      if(!parsed){
         try{
-          parsed=JSON.parse(repaired);
-        }catch(e2){
-          throw new Error("The plan response was too long and got cut off. Please try again, or reduce to '3 Meals + 1 Snack' for a shorter plan.");
-        }
+          let r=cleaned;
+          const lb=r.lastIndexOf("}");
+          if(lb>0) r=r.slice(0,lb+1);
+          const oc=(r.match(/{/g)||[]).length, cc=(r.match(/}/g)||[]).length;
+          const os=(r.match(/\[/g)||[]).length, cs=(r.match(/]/g)||[]).length;
+          for(let i=0;i<(os-cs);i++)r+="]";
+          for(let i=0;i<(oc-cc);i++)r+="}";
+          parsed=JSON.parse(r);
+        }catch(e2){ parsed=null; }
+      }
+      // Attempt 3: salvage complete days only — rebuild minimal valid JSON
+      if(!parsed){
+        try{
+          // grab everything up to the days array
+          const daysIdx=cleaned.indexOf('"days"');
+          // extract each complete day object {"day":...total":N}
+          const dayRe=/\{\s*"day"[\s\S]*?"total"\s*:\s*\d+\s*\}/g;
+          const dayMatches=cleaned.match(dayRe)||[];
+          // extract summary if present
+          let summaryObj={};
+          const sumMatch=cleaned.match(/"summary"\s*:\s*(\{[\s\S]*?\})\s*,\s*"(?:flags|days|supplements|keyPrinciples)"/);
+          if(sumMatch){ try{ summaryObj=JSON.parse(sumMatch[1]); }catch(e){} }
+          if(dayMatches.length>0){
+            const daysJson=dayMatches.join(",");
+            const rebuilt='{"summary":'+(sumMatch?sumMatch[1]:'{}')+',"flags":[],"supplements":[],"keyPrinciples":[],"days":['+daysJson+']}';
+            parsed=JSON.parse(rebuilt);
+            parsed._partial=dayMatches.length;
+          }
+        }catch(e3){ parsed=null; }
+      }
+      if(!parsed){
+        throw new Error("The plan response was cut off and could not be recovered. Please pick a single language (English OR Arabic, not Both) and try again.");
       }
       parsed._date=new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
+      parsed._planLang=planLang;
       parsed._patient={name,dob,bmi:BMI,gender,caseLabel:caseObj?caseObj[lang]||caseObj.en:"",dietLabel:dietObj?dietObj[lang]||dietObj.en:""};
-      setPlan(parsed);setStep(4);
-      // Auto-save to Supabase
-      try{
-        await supaInsert({
-          name:name||"Unnamed",dob:dob,age:age,gender:gender,
-          weight:wt,height:ht,bmi:BMI,
-          case_type:caseObj?caseObj.en:caseType,
-          diet_type:dietObj?dietObj.en:dietType,
-          meal_freq:freqObj.en,calories:finalCals,
-          plan:parsed,notes:notes
-        });
-        setSaveMsg(ar?"✓ تم حفظ المريض في قاعدة البيانات":"✓ Patient saved to database");
-        setTimeout(function(){setSaveMsg("");},4000);
-      }catch(saveErr){
-        setSaveMsg(ar?"⚠️ تعذر الحفظ: "+saveErr.message:"⚠️ Could not save: "+saveErr.message);
-      }
+      if(parsed._partial){setSaveMsg((ar?"⚠️ تم استرداد ":"⚠️ Recovered ")+parsed._partial+(ar?" أيام فقط — جرب لغة واحدة لخطة كاملة":" days only — pick one language for a full 7-day plan"));}
+      setPlan(parsed);setStep(4);setSavedToDb(false);
+      setSaveMsg(ar?"✏️ راجعي وعدّلي الخطة ثم اضغطي حفظ":"✏️ Review and edit the plan, then click Save");
     }catch(e){setErr("Error: "+e.message);}
     finally{setLoading(false);}
   }
@@ -717,6 +831,111 @@ function App(){
     catch(e){setErr("Delete failed: "+e.message);}
   }
 
+
+  // ── Edit helpers: update plan data immutably ──
+  function updateMeal(dayIdx,mealKey,field,value){
+    setPlan(function(prev){
+      var np=JSON.parse(JSON.stringify(prev));
+      if(np.days&&np.days[dayIdx]&&np.days[dayIdx].meals&&np.days[dayIdx].meals[mealKey]){
+        if(field==="items"||field==="items_ar"){
+          np.days[dayIdx].meals[mealKey][field]=value.split("\n").filter(function(x){return x.trim();});
+        }else{
+          np.days[dayIdx].meals[mealKey][field]=value;
+        }
+      }
+      return np;
+    });
+    setSavedToDb(false);
+  }
+  function updatePrinciple(idx,value,arField){
+    setPlan(function(prev){
+      var np=JSON.parse(JSON.stringify(prev));
+      var key=arField?"keyPrinciples_ar":"keyPrinciples";
+      if(!np[key])np[key]=[];
+      np[key][idx]=value;
+      return np;
+    });
+    setSavedToDb(false);
+  }
+  function updateSummary(field,value){
+    setPlan(function(prev){
+      var np=JSON.parse(JSON.stringify(prev));
+      if(!np.summary)np.summary={};
+      np.summary[field]=value;
+      return np;
+    });
+    setSavedToDb(false);
+  }
+  async function loadRefs(){
+    setShowRefs(true);setRefBusy("loading");
+    try{ const list=await refList(); setRefs(list); }
+    catch(e){ setErr("Could not load references: "+e.message); }
+    finally{ setRefBusy(""); }
+  }
+  async function addRef(){
+    if(!refTitle.trim()||!refContent.trim()){ setErr("Give the reference a title and content."); return; }
+    setRefBusy("saving");setErr("");
+    try{
+      await refInsert({title:refTitle.trim(),content:refContent.trim(),active:true});
+      setRefTitle("");setRefContent("");
+      const list=await refList(); setRefs(list);
+    }catch(e){ setErr("Could not save reference: "+e.message); }
+    finally{ setRefBusy(""); }
+  }
+  async function onRefFile(e){
+    const file=e.target.files&&e.target.files[0];
+    if(!file) return;
+    setErr("");
+    if(!refTitle.trim()) setRefTitle(file.name.replace(/\.[^.]+$/,""));
+    if(file.type==="application/pdf"||/\.pdf$/i.test(file.name)){
+      setRefBusy("reading");
+      try{
+        const b64=await new Promise(function(res,rej){
+          const r=new FileReader();
+          r.onload=function(){ res(String(r.result).split(",")[1]); };
+          r.onerror=function(){ rej(new Error("read failed")); };
+          r.readAsDataURL(file);
+        });
+        const txt=await extractPdfText(b64,apiKey);
+        setRefContent(txt);
+      }catch(err){ setErr("PDF read failed: "+err.message); }
+      finally{ setRefBusy(""); }
+    }else{
+      // text-like file
+      const r=new FileReader();
+      r.onload=function(){ setRefContent(String(r.result).slice(0,20000)); };
+      r.readAsText(file);
+    }
+    e.target.value="";
+  }
+  async function toggleRef(rf){
+    try{ await refUpdate(rf.id,{active:!rf.active}); setRefs(refs.map(function(x){return x.id===rf.id?Object.assign({},x,{active:!rf.active}):x;})); }
+    catch(e){ setErr("Update failed: "+e.message); }
+  }
+  async function removeRef(id){
+    if(!window.confirm(ar?"حذف هذا المرجع؟":"Delete this reference?")) return;
+    try{ await refDelete(id); setRefs(refs.filter(function(x){return x.id!==id;})); }
+    catch(e){ setErr("Delete failed: "+e.message); }
+  }
+  async function saveToDatabase(){
+    if(!plan){return;}
+    setSaveMsg(ar?"⏳ جاري الحفظ...":"⏳ Saving...");
+    try{
+      await supaInsert({
+        name:name||"Unnamed",dob:dob,age:age,gender:gender,
+        weight:wt,height:ht,bmi:BMI,
+        case_type:caseObj?caseObj.en:caseType,
+        diet_type:dietObj?dietObj.en:dietType,
+        meal_freq:freqObj.en,calories:finalCals,
+        plan:plan,notes:notes
+      });
+      setSavedToDb(true);
+      setSaveMsg(ar?"✓ تم حفظ المريض في قاعدة البيانات":"✓ Patient saved to database");
+      setTimeout(function(){setSaveMsg("");},4000);
+    }catch(saveErr){
+      setSaveMsg(ar?"⚠️ تعذر الحفظ: "+saveErr.message:"⚠️ Could not save: "+saveErr.message);
+    }
+  }
 
   // ── ONE-PAGE PRINTABLE WEEKLY VIEW ──────────────────────────────
   function printableWeek(){
@@ -781,15 +1000,12 @@ function App(){
         )
       ),
       // Footer notes
-      React.createElement("div",{style:{display:"flex",gap:10,marginTop:8,fontSize:8}},
-        React.createElement("div",{style:{flex:1}},
+      React.createElement("div",{style:{marginTop:8,fontSize:8}},
+        React.createElement("div",{style:{width:"100%"}},
           React.createElement("div",{style:{fontWeight:700,color:C.teal,fontSize:9,marginBottom:2}},par?"المبادئ الأساسية":"Key Principles"),
           ((par&&plan.keyPrinciples_ar&&plan.keyPrinciples_ar.length)?plan.keyPrinciples_ar:(plan.keyPrinciples||[])).slice(0,4).map(function(p,i){return React.createElement("div",{key:i,style:{color:C.slate}},"• "+String(p));})
         ),
-        plan.supplements&&plan.supplements.length>0&&React.createElement("div",{style:{flex:1}},
-          React.createElement("div",{style:{fontWeight:700,color:C.teal,fontSize:9,marginBottom:2}},par?"المكملات":"Supplements"),
-          plan.supplements.slice(0,4).map(function(s,i){return React.createElement("div",{key:i,style:{color:C.slate}},"• "+String((par&&s.name_ar)?s.name_ar:s.name||"")+" — "+String(s.dose||""));})
-        )
+        null
       ),
       React.createElement("div",{style:{borderTop:"1px solid "+C.border,marginTop:8,paddingTop:5,fontSize:7.5,color:"#9BB0AD",textAlign:"center"}},
         brandTag(BR,par)+" · ASPEN/ESPEN · "+String(plan._date||"")
@@ -798,6 +1014,54 @@ function App(){
   }
 
   // ── HISTORY SCREEN ──────────────────────────────────────────────
+  function referencesScreen(){
+    return React.createElement("div",{dir:ar?"rtl":"ltr"},
+      React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
+        React.createElement("div",{style:{fontSize:18,fontWeight:800,color:C.teal}},ar?"📚 مكتبة المراجع":"📚 Reference Library"),
+        React.createElement(Btn,{label:ar?"← رجوع":"← Back",onClick:function(){setShowRefs(false);},outline:true,small:true})
+      ),
+      React.createElement("div",{style:{fontSize:12,color:C.slate,marginBottom:16,lineHeight:1.6}},
+        ar?"أضيفي الإرشادات أو البروتوكولات التي تريدين أن يتبعها الذكاء الاصطناعي. المراجع المفعّلة ستُستخدم في كل خطة.":"Add guidelines or protocols the AI should follow. Active references are used in every plan you generate."
+      ),
+      // Add form
+      React.createElement("div",{style:{background:C.mist,border:"1.5px solid "+C.border,borderRadius:12,padding:16,marginBottom:18}},
+        React.createElement("div",{style:{fontSize:12,fontWeight:700,color:C.teal,marginBottom:10}},ar?"➕ إضافة مرجع":"➕ Add Reference"),
+        React.createElement("input",{value:refTitle,onChange:function(e){setRefTitle(e.target.value);},placeholder:ar?"عنوان المرجع (مثال: بروتوكول السكري للأطفال)":"Reference title (e.g. Paediatric Diabetes Protocol)",
+          style:{width:"100%",boxSizing:"border-box",padding:"9px 11px",borderRadius:8,border:"1.5px solid "+C.border,fontSize:13,marginBottom:10,direction:ar?"rtl":"ltr",fontFamily:"inherit"}}),
+        React.createElement("textarea",{value:refContent,onChange:function(e){setRefContent(e.target.value);},rows:5,placeholder:ar?"الصقي نص المرجع هنا، أو ارفعي ملف بالأسفل...":"Paste reference text here, or upload a file below...",
+          style:{width:"100%",boxSizing:"border-box",padding:"9px 11px",borderRadius:8,border:"1.5px solid "+C.border,fontSize:13,resize:"vertical",direction:ar?"rtl":"ltr",fontFamily:"inherit",marginBottom:10}}),
+        React.createElement("div",{style:{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}},
+          React.createElement("label",{style:{padding:"7px 14px",borderRadius:8,border:"1.5px dashed "+C.teal,color:C.teal,fontSize:12,fontWeight:600,cursor:"pointer",background:C.white}},
+            (ar?"📎 رفع ملف (PDF / نص)":"📎 Upload file (PDF / text)"),
+            React.createElement("input",{type:"file",accept:".pdf,.txt,.md,.csv,application/pdf,text/plain",onChange:onRefFile,style:{display:"none"}})
+          ),
+          refBusy==="reading"&&React.createElement("span",{style:{fontSize:12,color:C.amber}},ar?"⏳ جاري قراءة الملف بالذكاء الاصطناعي...":"⏳ AI reading the file..."),
+          React.createElement("div",{style:{flex:1}}),
+          React.createElement("button",{onClick:addRef,disabled:refBusy==="saving",style:{padding:"8px 20px",borderRadius:8,border:"none",background:"linear-gradient(135deg,"+C.sage+",#2E8060)",color:C.white,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}},refBusy==="saving"?(ar?"جاري الحفظ...":"Saving..."):(ar?"حفظ المرجع":"Save Reference"))
+        )
+      ),
+      // List
+      refBusy==="loading"?React.createElement("div",{style:{textAlign:"center",padding:30,color:C.slate}},ar?"جاري التحميل...":"Loading…"):
+      refs.length===0?React.createElement("div",{style:{textAlign:"center",padding:30,color:"#9BB0AD"}},ar?"لا توجد مراجع بعد.":"No references yet. Add your first one above."):
+      React.createElement("div",null,
+        refs.map(function(rf){
+          return React.createElement("div",{key:rf.id,style:{background:C.white,border:"1.5px solid "+(rf.active?C.sage+"60":C.border),borderRadius:10,padding:"12px 14px",marginBottom:10}},
+            React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}},
+              React.createElement("div",{style:{display:"flex",alignItems:"center",gap:10}},
+                React.createElement("button",{onClick:function(){toggleRef(rf);},title:"toggle",style:{width:40,height:22,borderRadius:12,border:"none",background:rf.active?C.sage:C.border,position:"relative",cursor:"pointer",flexShrink:0}},
+                  React.createElement("div",{style:{width:16,height:16,borderRadius:"50%",background:C.white,position:"absolute",top:3,left:rf.active?21:3,transition:"left .15s"}})
+                ),
+                React.createElement("div",{style:{fontWeight:700,fontSize:14,color:C.ink}},String(rf.title))
+              ),
+              React.createElement("button",{onClick:function(){removeRef(rf.id);},style:{background:"none",border:"none",color:"#C5D5D2",cursor:"pointer",fontSize:16}},"✕")
+            ),
+            React.createElement("div",{style:{fontSize:11,color:C.slate,marginTop:6,maxHeight:60,overflow:"hidden",lineHeight:1.5}},String(rf.content||"").slice(0,220)+(String(rf.content||"").length>220?"…":"")),
+            React.createElement("div",{style:{fontSize:10,color:rf.active?C.sage:"#9BB0AD",marginTop:5,fontWeight:600}},rf.active?(ar?"● مفعّل — يُستخدم في الخطط":"● Active — used in plans"):(ar?"○ غير مفعّل":"○ Inactive"))
+          );
+        })
+      )
+    );
+  }
   function historyScreen(){
     return React.createElement("div",{dir:ar?"rtl":"ltr"},
       React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}},
@@ -891,9 +1155,10 @@ function App(){
     ),
     React.createElement("div",{style:{display:"flex",gap:8}},
       React.createElement("button",{onClick:function(){setLang(ar?"en":"ar");},style:{padding:"5px 12px",borderRadius:16,border:"1.5px solid rgba(255,255,255,.5)",background:"rgba(255,255,255,.15)",color:C.white,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}},ar?"🇬🇧 English":"🇸🇦 عربي"),
-      plan&&React.createElement("button",{onClick:function(){setPrintMode(true);},style:{padding:"5px 12px",borderRadius:16,border:"1.5px solid rgba(255,255,255,.5)",background:"rgba(255,255,255,.15)",color:C.white,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}},ar?"🖨️ طباعة":"🖨️ Print"),
+      plan&&React.createElement("button",{onClick:function(){if(plan._planLang&&plan._planLang!=="both")setPrintLang(plan._planLang);setPrintMode(true);},style:{padding:"5px 12px",borderRadius:16,border:"1.5px solid rgba(255,255,255,.5)",background:"rgba(255,255,255,.15)",color:C.white,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}},ar?"🖨️ طباعة":"🖨️ Print"),
       plan&&React.createElement("button",{onClick:function(){setPlan(null);setStep(1);},style:{padding:"5px 12px",borderRadius:16,border:"1.5px solid rgba(255,255,255,.5)",background:"rgba(255,255,255,.15)",color:C.white,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}},ar?"+ جديد":"+ New"),
       React.createElement("button",{onClick:loadHistory,style:{padding:"5px 12px",borderRadius:16,border:"1.5px solid rgba(255,255,255,.5)",background:"rgba(255,255,255,.15)",color:C.white,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}},ar?"📋 السجل":"📋 History"),
+      React.createElement("button",{onClick:loadRefs,style:{padding:"5px 12px",borderRadius:16,border:"1.5px solid rgba(255,255,255,.5)",background:"rgba(255,255,255,.15)",color:C.white,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}},ar?"📚 المراجع":"📚 References"),
       React.createElement("button",{onClick:function(){if(window.confirm(ar?"تغيير مفتاح API؟ ستحتاج لإدخاله مرة أخرى.":"Change API key? You'll need to enter it again.")){try{localStorage.removeItem("nk");}catch(e){}setApiKey("");}},title:ar?"تغيير مفتاح API":"Change API Key",style:{padding:"5px 12px",borderRadius:16,border:"1.5px solid rgba(255,255,255,.3)",background:"rgba(255,255,255,.1)",color:"rgba(255,255,255,.85)",fontSize:11,cursor:"pointer",fontFamily:"inherit"}},ar?"🔑 المفتاح":"🔑 Change Key")
     )
   );
@@ -1008,9 +1273,20 @@ function App(){
       FREQ.map(function(f){
         var sel=freq===f.v;
         return React.createElement("div",{key:f.v,onClick:function(){setFreq(f.v);},
-          style:{border:"2px solid "+(sel?C.teal:C.border),borderRadius:10,padding:"12px 14px",cursor:"pointer",background:sel?C.tealLt:C.white}},
-          React.createElement("div",{style:{fontWeight:700,color:sel?C.teal:C.ink,fontSize:13}},f.en),
-          React.createElement("div",{style:{fontSize:11,color:C.slate,marginTop:4}},f.meals.join(" · "))
+          style:{border:"2px solid "+(sel?C.teal:C.border),borderRadius:10,padding:"12px 12px",cursor:"pointer",background:sel?C.tealLt:C.white}},
+          React.createElement("div",{style:{fontWeight:700,color:sel?C.teal:C.ink,fontSize:12.5}},f.en),
+          React.createElement("div",{style:{fontSize:10,color:C.slate,marginTop:4}},f.meals.length+(ar?" وجبات":" meals"))
+        );
+      })
+    ),
+    React.createElement("div",{style:{fontSize:12,fontWeight:700,color:C.slate,marginBottom:10}},ar?"لغة الخطة *":"PLAN LANGUAGE *"),
+    React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}},
+      [["en","🇬🇧 English",ar?"إنجليزي فقط":"English only"],["ar","🇸🇦 عربي",ar?"عربي فقط (أسرع)":"Arabic only"],["both","🌐 Both",ar?"الإثنين (أبطأ)":"Bilingual (slower)"]].map(function(opt){
+        var sel=planLang===opt[0];
+        return React.createElement("div",{key:opt[0],onClick:function(){setPlanLang(opt[0]);},
+          style:{border:"2px solid "+(sel?C.teal:C.border),borderRadius:10,padding:"12px 10px",cursor:"pointer",background:sel?C.tealLt:C.white,textAlign:"center"}},
+          React.createElement("div",{style:{fontWeight:700,color:sel?C.teal:C.ink,fontSize:14}},opt[1]),
+          React.createElement("div",{style:{fontSize:10,color:C.slate,marginTop:3}},opt[2])
         );
       })
     ),
@@ -1100,7 +1376,7 @@ function App(){
           style:{padding:"6px 14px",borderRadius:20,fontSize:12,fontWeight:600,
             border:"1.5px solid "+(activeDay===i?C.teal:C.border),
             background:activeDay===i?C.teal:C.white,color:activeDay===i?C.white:C.slate,cursor:"pointer",fontFamily:"inherit"}},
-          String(d.day||"Day "+(i+1))
+          String(((ar||plan._planLang==="ar")&&DAY_AR[d.day])?DAY_AR[d.day]:(d.day||"Day "+(i+1)))
         );
       })
     ),
@@ -1109,46 +1385,46 @@ function App(){
       if(di!==activeDay) return null;
       return React.createElement("div",{key:di},
         React.createElement("div",{style:{fontSize:14,fontWeight:800,color:C.teal,marginBottom:10,display:"flex",alignItems:"center",gap:10}},
-          React.createElement("span",{style:{background:C.teal,color:C.white,borderRadius:20,padding:"2px 14px",fontSize:12}},String(day.day||"")),
+          React.createElement("span",{style:{background:C.teal,color:C.white,borderRadius:20,padding:"2px 14px",fontSize:12}},String(((ar||plan._planLang==="ar")&&DAY_AR[day.day])?DAY_AR[day.day]:(day.day||""))),
           React.createElement("span",{style:{fontSize:12,color:C.slate}},ar?"إجمالي: ":"Total: ","~"+String(day.total||0)+" kcal")
         ),
         React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}},
           Object.keys(day.meals||{}).map(function(mk){
             var meal=day.meals[mk];
+            var useAr=(ar||plan._planLang==="ar");
+            var nameField=useAr&&meal.name_ar!==undefined?"name_ar":"name";
+            var itemsField=useAr&&meal.items_ar!==undefined?"items_ar":"items";
+            var nameVal=useAr?(meal.name_ar||meal.name||""):(meal.name||meal.name_ar||"");
+            var itemsVal=(useAr&&meal.items_ar&&meal.items_ar.length)?meal.items_ar:(meal.items&&meal.items.length?meal.items:meal.items_ar||[]);
             return React.createElement("div",{key:mk,style:{background:MEAL_COLORS[mk]||C.mist,border:"1px solid "+C.border,borderRadius:12,padding:"11px 13px"}},
-              React.createElement("div",{style:{fontSize:11,fontWeight:700,color:C.teal,marginBottom:5,display:"flex",justifyContent:"space-between"}},
-                React.createElement("span",null,String(MEAL_ICONS[mk]||"🍽️")+" "+String(mk)),
-                React.createElement("span",{style:{background:C.white,padding:"1px 8px",borderRadius:10,fontSize:10,color:C.slate}},String(meal.calories||0)+" kcal")
+              React.createElement("div",{style:{fontSize:11,fontWeight:700,color:C.teal,marginBottom:5,display:"flex",justifyContent:"space-between",alignItems:"center"}},
+                React.createElement("span",null,String(MEAL_ICONS[mk]||"🍽️")+" "+String(((ar||plan._planLang==="ar")&&MEAL_AR[mk])?MEAL_AR[mk]:mk)),
+                editMode?React.createElement("input",{type:"number",value:meal.calories||0,onChange:function(e){updateMeal(di,mk,"calories",parseInt(e.target.value)||0);},style:{width:60,padding:"2px 5px",borderRadius:6,border:"1px solid "+C.border,fontSize:10,textAlign:"center"}}):React.createElement("span",{style:{background:C.white,padding:"1px 8px",borderRadius:10,fontSize:10,color:C.slate}},String(meal.calories||0)+" kcal")
               ),
-              React.createElement("div",{style:{fontSize:12,fontWeight:700,color:C.ink,marginBottom:5}},String((ar&&meal.name_ar)?meal.name_ar:meal.name||"")),
-              React.createElement("ul",{style:{margin:0,paddingLeft:14}},
-                ((ar&&meal.items_ar&&meal.items_ar.length)?meal.items_ar:(meal.items||[])).map(function(item,ii){return React.createElement("li",{key:ii,style:{fontSize:12,color:C.slate,marginBottom:2}},String(item));})
+              editMode?React.createElement("input",{value:nameVal,onChange:function(e){updateMeal(di,mk,nameField,e.target.value);},style:{width:"100%",fontSize:12,fontWeight:700,color:C.ink,marginBottom:5,padding:"4px 6px",borderRadius:6,border:"1px solid "+C.teal+"60",direction:useAr?"rtl":"ltr"}}):React.createElement("div",{style:{fontSize:12,fontWeight:700,color:C.ink,marginBottom:5}},String(nameVal)),
+              editMode?React.createElement("textarea",{value:itemsVal.join("\n"),onChange:function(e){updateMeal(di,mk,itemsField,e.target.value);},rows:Math.max(2,itemsVal.length),style:{width:"100%",fontSize:11,color:C.slate,padding:"4px 6px",borderRadius:6,border:"1px solid "+C.teal+"60",resize:"vertical",direction:useAr?"rtl":"ltr",fontFamily:"inherit"},placeholder:useAr?"عنصر في كل سطر":"one item per line"}):React.createElement("ul",{style:{margin:0,paddingLeft:14}},
+                itemsVal.map(function(item,ii){return React.createElement("li",{key:ii,style:{fontSize:12,color:C.slate,marginBottom:2}},String(item));})
               ),
-              meal.notes&&React.createElement("div",{style:{fontSize:11,color:C.tealMid,marginTop:4,fontStyle:"italic"}},"💡 "+String(meal.notes))
+              (!editMode&&meal.notes)&&React.createElement("div",{style:{fontSize:11,color:C.tealMid,marginTop:4,fontStyle:"italic"}},"💡 "+String(meal.notes))
             );
           })
         )
       );
     }),
-    // Principles + Supplements
-    React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:16,marginBottom:14}},
+    // Key Principles (full width — supplements removed, prescribed separately)
+    React.createElement("div",{style:{marginTop:16,marginBottom:14}},
       React.createElement("div",{style:{background:C.white,border:"1.5px solid "+C.border,borderRadius:12,padding:16}},
         React.createElement("div",{style:{fontSize:12,fontWeight:700,color:C.teal,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}},"🔑 "+(ar?"المبادئ الغذائية":"Key Principles")),
-        ((ar&&plan.keyPrinciples_ar&&plan.keyPrinciples_ar.length)?plan.keyPrinciples_ar:(plan.keyPrinciples||[])).map(function(p,i){
-          return React.createElement("div",{key:i,style:{display:"flex",gap:8,marginBottom:7}},
-            React.createElement("div",{style:{width:20,height:20,borderRadius:"50%",background:C.teal,color:C.white,fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},String(i+1)),
-            React.createElement("div",{style:{fontSize:12,color:C.slate,paddingTop:2}},String(p))
-          );
-        })
-      ),
-      React.createElement("div",{style:{background:C.white,border:"1.5px solid "+C.border,borderRadius:12,padding:16}},
-        React.createElement("div",{style:{fontSize:12,fontWeight:700,color:C.teal,textTransform:"uppercase",letterSpacing:.8,marginBottom:10}},"💊 "+(ar?"المكملات":"Supplements")),
-        (plan.supplements||[]).map(function(s,i){
-          return React.createElement("div",{key:i,style:{background:C.sageLt,borderRadius:9,padding:"8px 11px",marginBottom:7}},
-            React.createElement("div",{style:{fontWeight:700,fontSize:12,color:C.teal}},String((ar&&s.name_ar)?s.name_ar:s.name||"")),
-            React.createElement("div",{style:{fontSize:11,color:C.slate}},String(s.dose||"")+" — "+String((ar&&s.reason_ar)?s.reason_ar:s.reason||""))
-          );
-        })
+        (function(){
+          var useArP=(ar&&plan.keyPrinciples_ar&&plan.keyPrinciples_ar.length);
+          var arr=useArP?plan.keyPrinciples_ar:(plan.keyPrinciples||[]);
+          return arr.map(function(p,i){
+            return React.createElement("div",{key:i,style:{display:"flex",gap:8,marginBottom:7,alignItems:"center"}},
+              React.createElement("div",{style:{width:20,height:20,borderRadius:"50%",background:C.teal,color:C.white,fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},String(i+1)),
+              editMode?React.createElement("input",{value:String(p),onChange:function(e){updatePrinciple(i,e.target.value,useArP);},style:{flex:1,fontSize:12,color:C.slate,padding:"4px 6px",borderRadius:6,border:"1px solid "+C.teal+"60",direction:useArP?"rtl":"ltr"}}):React.createElement("div",{style:{fontSize:12,color:C.slate,paddingTop:2}},String(p))
+            );
+          });
+        })()
       )
     ),
     // Footer
@@ -1173,19 +1449,23 @@ function App(){
   return React.createElement("div",{style:{minHeight:"100vh",background:"linear-gradient(160deg,"+C.tealLt+" 0%,#F0FAF7 40%,#fff 100%)",fontFamily:"'Segoe UI',system-ui,sans-serif"}},
     header,
     React.createElement("div",{style:{maxWidth:880,margin:"0 auto",padding:"24px 16px 60px"}},
-      !showHistory&&stepBar,
+      !showHistory&&!showRefs&&stepBar,
       React.createElement("div",{style:{background:C.white,borderRadius:16,boxShadow:"0 4px 32px rgba(27,107,107,.08)",border:"1px solid "+C.border,padding:"24px 28px"}},
         showHistory&&historyScreen(),
-        !showHistory&&step===1&&step1,
-        !showHistory&&step===2&&step2,
-        !showHistory&&step===3&&step3,
-        !showHistory&&step===4&&step4,
+        showRefs&&referencesScreen(),
+        !showHistory&&!showRefs&&step===1&&step1,
+        !showHistory&&!showRefs&&step===2&&step2,
+        !showHistory&&!showRefs&&step===3&&step3,
+        !showHistory&&!showRefs&&step===4&&step4,
         err&&React.createElement("div",{style:{background:C.redLt,border:"1.5px solid "+C.red+"30",borderRadius:8,padding:"10px 14px",fontSize:13,color:C.red,marginTop:12}},"⚠️ "+err),
-        !showHistory&&nav,
+        !showHistory&&!showRefs&&nav,
         saveMsg&&React.createElement("div",{style:{background:saveMsg.indexOf("⚠")>=0?C.amberLt:C.sageLt,border:"1.5px solid "+(saveMsg.indexOf("⚠")>=0?C.amber:C.sage)+"40",borderRadius:8,padding:"8px 14px",fontSize:12.5,color:saveMsg.indexOf("⚠")>=0?"#B07800":"#2E8060",marginTop:12,fontWeight:600}},saveMsg),
-        step===4&&plan&&React.createElement("div",{style:{display:"flex",gap:10,marginTop:16,paddingTop:16,borderTop:"1.5px solid "+C.border}},
-          React.createElement(Btn,{label:ar?"← تعديل":"← Adjust",onClick:function(){setStep(3);},outline:true,small:true}),
-          React.createElement(Btn,{label:ar?"🔄 إعادة إنشاء":"🔄 Regenerate",onClick:generate,small:true})
+        step===4&&plan&&React.createElement("div",{style:{display:"flex",gap:10,marginTop:16,paddingTop:16,borderTop:"1.5px solid "+C.border,flexWrap:"wrap",alignItems:"center"}},
+          React.createElement("button",{onClick:function(){setEditMode(!editMode);},style:{padding:"8px 18px",borderRadius:9,border:"2px solid "+(editMode?C.sage:C.teal),background:editMode?C.sage:C.white,color:editMode?C.white:C.teal,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}},editMode?(ar?"✓ تم التعديل":"✓ Done Editing"):(ar?"✏️ تعديل الخطة":"✏️ Edit Plan")),
+          React.createElement("button",{onClick:saveToDatabase,disabled:savedToDb,style:{padding:"8px 22px",borderRadius:9,border:"none",background:savedToDb?C.border:"linear-gradient(135deg,"+C.sage+",#2E8060)",color:C.white,fontWeight:700,fontSize:13,cursor:savedToDb?"default":"pointer",fontFamily:"inherit"}},savedToDb?(ar?"✓ محفوظ":"✓ Saved"):(ar?"💾 حفظ في قاعدة البيانات":"💾 Save to Database")),
+          React.createElement("div",{style:{flex:1}}),
+          React.createElement(Btn,{label:ar?"← الإعدادات":"← Settings",onClick:function(){setStep(3);},outline:true,small:true}),
+          React.createElement(Btn,{label:ar?"🔄 إعادة إنشاء":"🔄 Regenerate",onClick:function(){setEditMode(false);generate();},small:true})
         ),
         loading&&step<4&&React.createElement("div",{style:{textAlign:"center",padding:"16px 0",fontSize:13,color:C.slate}},"🤖 Analysing patient data and crafting personalised plan…")
       )
